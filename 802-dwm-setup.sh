@@ -76,7 +76,38 @@ echo "Source ready."
 tput sgr0
 
 ##################################################################################################################################
-# 4. Build and install
+# 4. Patch wallpaper keybindings into config.h
+##################################################################################################################################
+
+echo
+echo "Patching wallpaper keybinds into config.h ..."
+
+python3 - "$DWM_SRC/config.h" <<'PYPATCH'
+import sys
+path = sys.argv[1]
+text = open(path).read()
+if 'XK_w' in text:
+    print("wallpaper keybinds already present — skipping.")
+    sys.exit(0)
+insert = (
+    '\t{ MODKEY,                       XK_w,      spawn,          SHCMD("$HOME/.local/bin/wallpaper.sh next") },\n'
+    '\t{ MODKEY|ShiftMask,             XK_w,      spawn,          SHCMD("$HOME/.local/bin/wallpaper.sh prev") },\n'
+)
+marker = '\t{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },'
+new_text = text.replace(marker, insert + marker, 1)
+if new_text == text:
+    print("ERROR: marker line not found in config.h — patch not applied")
+    sys.exit(1)
+open(path, 'w').write(new_text)
+print("wallpaper keybinds added.")
+PYPATCH
+
+tput setaf 2
+echo "config.h patched."
+tput sgr0
+
+##################################################################################################################################
+# 5. Build and install
 ##################################################################################################################################
 
 echo
@@ -92,7 +123,7 @@ echo "dwm installed."
 tput sgr0
 
 ##################################################################################################################################
-# 5. Create LightDM xsessions entry (idempotent)
+# 6. Create LightDM xsessions entry (idempotent)
 ##################################################################################################################################
 
 echo
@@ -115,7 +146,7 @@ EOF
 fi
 
 ##################################################################################################################################
-# 6. Write ~/.dwm/keybindings.txt
+# 7. Write ~/.dwm/keybindings.txt
 ##################################################################################################################################
 
 echo
@@ -148,6 +179,8 @@ Layout
   Mod + d               decrease master count
 
 Tags (workspaces)
+  Mod + Left            previous tag (wrap)
+  Mod + Right           next tag (wrap)
   Mod + 1-9             view tag
   Mod + Shift + 1-9     move window to tag
   Mod + Ctrl + 1-9      toggle tag view
@@ -163,6 +196,10 @@ Multi-monitor
   Mod + .               focus next monitor
   Mod + Shift + ,       move window to previous monitor
   Mod + Shift + .       move window to next monitor
+
+Wallpaper
+  Mod + w               next wallpaper
+  Mod + Shift + w       previous wallpaper
 
 System
   Mod + Space           show this file
