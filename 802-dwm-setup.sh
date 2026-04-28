@@ -1,0 +1,189 @@
+#!/bin/bash
+#set -e
+##################################################################################################################################
+# Author    : zythros
+# Purpose   : Set up dwm as a desktop environment option.
+#             Clones github.com/zythros/dwm, builds from source, installs,
+#             writes a LightDM xsessions entry, and writes ~/.dwm/keybindings.txt.
+#             Note: Arch [extra] repo must be present (added by 880 or 881) for st/dmenu.
+##################################################################################################################################
+#
+#   DO NOT JUST RUN THIS. EXAMINE AND JUDGE. RUN AT YOUR OWN RISK.
+#
+##################################################################################################################################
+
+if [ "$DEBUG" = true ]; then
+    echo
+    echo "------------------------------------------------------------"
+    echo "Running $(basename $0)"
+    echo "------------------------------------------------------------"
+    echo
+    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
+    echo
+fi
+
+##################################################################################################################################
+
+echo
+tput setaf 2
+echo "########################################################################"
+echo "################### Setting up dwm"
+echo "########################################################################"
+tput sgr0
+echo
+
+##################################################################################################################################
+# 1. Install build dependencies
+##################################################################################################################################
+
+echo "Installing build dependencies ..."
+sudo pacman -S --noconfirm --needed base-devel libx11 libxft libxinerama
+
+tput setaf 2
+echo "Build dependencies installed."
+tput sgr0
+
+##################################################################################################################################
+# 2. Install runtime dependencies
+##################################################################################################################################
+
+echo
+echo "Installing runtime dependencies (st, dmenu) ..."
+sudo pacman -S --noconfirm --needed st dmenu
+
+tput setaf 2
+echo "Runtime dependencies installed."
+tput sgr0
+
+##################################################################################################################################
+# 3. Clone or update fork
+##################################################################################################################################
+
+echo
+DWM_SRC="$HOME/.local/src/dwm"
+
+if [ -d "$DWM_SRC/.git" ]; then
+    echo "dwm source found at $DWM_SRC — pulling latest ..."
+    git -C "$DWM_SRC" pull
+else
+    echo "Cloning github.com/zythros/dwm to $DWM_SRC ..."
+    mkdir -p "$(dirname "$DWM_SRC")"
+    git clone git@github.com:zythros/dwm.git "$DWM_SRC"
+fi
+
+tput setaf 2
+echo "Source ready."
+tput sgr0
+
+##################################################################################################################################
+# 4. Build and install
+##################################################################################################################################
+
+echo
+echo "Building dwm ..."
+make -C "$DWM_SRC" clean
+make -C "$DWM_SRC"
+
+echo "Installing dwm ..."
+sudo make -C "$DWM_SRC" install
+
+tput setaf 2
+echo "dwm installed."
+tput sgr0
+
+##################################################################################################################################
+# 5. Create LightDM xsessions entry (idempotent)
+##################################################################################################################################
+
+echo
+SESSION_FILE="/usr/share/xsessions/dwm.desktop"
+
+if [ -f "$SESSION_FILE" ]; then
+    echo "$SESSION_FILE already exists — skipping."
+else
+    echo "Writing $SESSION_FILE ..."
+    sudo tee "$SESSION_FILE" > /dev/null <<'EOF'
+[Desktop Entry]
+Name=dwm
+Comment=Dynamic Window Manager
+Exec=dwm
+Type=Application
+EOF
+    tput setaf 2
+    echo "Session entry created."
+    tput sgr0
+fi
+
+##################################################################################################################################
+# 6. Write ~/.dwm/keybindings.txt
+##################################################################################################################################
+
+echo
+KEYBINDINGS_FILE="$HOME/.dwm/keybindings.txt"
+mkdir -p "$HOME/.dwm"
+
+echo "Writing $KEYBINDINGS_FILE ..."
+cat > "$KEYBINDINGS_FILE" <<'EOF'
+dwm keybindings  (Mod = Super / Windows key)
+=============================================
+
+Launching
+  Mod + p               dmenu (run launcher)
+  Mod + Shift + Return  st (terminal)
+
+Windows
+  Mod + j               focus next window
+  Mod + k               focus previous window
+  Mod + Return          move focused window to master
+  Mod + Shift + c       close focused window
+  Mod + Shift + Space   toggle floating
+
+Layout
+  Mod + t               tile layout
+  Mod + f               floating layout
+  Mod + m               monocle layout
+  Mod + h               shrink master area
+  Mod + l               expand master area
+  Mod + i               increase master count
+  Mod + d               decrease master count
+
+Tags (workspaces)
+  Mod + 1-9             view tag
+  Mod + Shift + 1-9     move window to tag
+  Mod + Ctrl + 1-9      toggle tag view
+  Mod + 0               view all tags
+  Mod + Shift + 0       move window to all tags
+  Mod + Tab             toggle last tag
+
+Bar
+  Mod + b               toggle bar
+
+Multi-monitor
+  Mod + ,               focus previous monitor
+  Mod + .               focus next monitor
+  Mod + Shift + ,       move window to previous monitor
+  Mod + Shift + .       move window to next monitor
+
+System
+  Mod + Space           show this file
+  Mod + Shift + q       quit dwm
+EOF
+
+tput setaf 2
+echo "Keybindings file written."
+tput sgr0
+
+##################################################################################################################################
+
+echo
+tput setaf 6
+echo "##############################################################"
+echo "###################  $(basename $0) done"
+echo "##############################################################"
+echo
+echo "dwm is now available as a session in LightDM."
+echo "Keybindings: $KEYBINDINGS_FILE"
+echo "Source:      $DWM_SRC"
+echo "To rebuild:  make -C $DWM_SRC clean && make -C $DWM_SRC && sudo make -C $DWM_SRC install"
+echo
+tput sgr0
