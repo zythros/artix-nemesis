@@ -43,10 +43,14 @@ for (( i=0; i<${#ENTRIES[@]}; i+=2 )); do
     CHECKLIST_ARGS+=("${ENTRIES[i]}" "${ENTRIES[i+1]}" "OFF")
 done
 
+DLG_W=$(( $(tput cols)  - 4 ))
+DLG_H=$(( $(tput lines) - 4 ))
+DLG_LIST=$(( DLG_H - 8 ))
+
 SELECTED=$($TUI \
     --title "artix-nemesis setup" \
     --checklist "Select scripts to run (SPACE to toggle, ENTER to confirm):" \
-    22 74 12 \
+    "$DLG_H" "$DLG_W" "$DLG_LIST" \
     "${CHECKLIST_ARGS[@]}" \
     3>&1 1>&2 2>&3) || exit 0
 
@@ -67,7 +71,7 @@ done
 $TUI \
     --title "Confirm" \
     --yesno "$CONFIRM_MSG" \
-    20 74 || { echo "Aborted."; exit 0; }
+    "$DLG_H" "$DLG_W" || { echo "Aborted."; exit 0; }
 
 ##################################################################################################################################
 # Run selected scripts in order
@@ -104,7 +108,7 @@ for script in "${QUEUE[@]}"; do
         if ! $TUI \
             --title "Script failed" \
             --yesno "$script exited with an error.\n\nContinue with remaining scripts?" \
-            10 60; then
+            "$DLG_H" "$DLG_W"; then
             break
         fi
     fi
