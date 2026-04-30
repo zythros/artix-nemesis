@@ -10,9 +10,14 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if ! command -v whiptail &>/dev/null; then
-    echo "whiptail not found — install libnewt" >&2
-    exit 1
+if command -v whiptail &>/dev/null; then
+    TUI=whiptail
+elif command -v dialog &>/dev/null; then
+    TUI=dialog
+else
+    echo "Installing dialog..."
+    sudo pacman -S --noconfirm dialog || { echo "Could not install dialog — aborting" >&2; exit 1; }
+    TUI=dialog
 fi
 
 # Pairs: script filename, menu description (in desired run order)
@@ -38,7 +43,7 @@ for (( i=0; i<${#ENTRIES[@]}; i+=2 )); do
     CHECKLIST_ARGS+=("${ENTRIES[i]}" "${ENTRIES[i+1]}" "OFF")
 done
 
-SELECTED=$(whiptail \
+SELECTED=$($TUI \
     --title "artix-nemesis setup" \
     --checklist "Select scripts to run (SPACE to toggle, ENTER to confirm):" \
     22 74 12 \
@@ -59,7 +64,7 @@ for s in "${QUEUE[@]}"; do
     CONFIRM_MSG+="\n  $s"
 done
 
-whiptail \
+$TUI \
     --title "Confirm" \
     --yesno "$CONFIRM_MSG" \
     20 74 || { echo "Aborted."; exit 0; }
@@ -96,7 +101,7 @@ for script in "${QUEUE[@]}"; do
         tput sgr0
         FAIL+=("$script")
 
-        if ! whiptail \
+        if ! $TUI \
             --title "Script failed" \
             --yesno "$script exited with an error.\n\nContinue with remaining scripts?" \
             10 60; then
