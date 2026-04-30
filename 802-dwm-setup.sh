@@ -5,7 +5,7 @@
 # Purpose   : Set up dwm as a desktop environment option.
 #             Clones github.com/zythros/dwm, builds from source, installs,
 #             writes a LightDM xsessions entry, and writes ~/.dwm/keybindings.txt.
-#             Note: Arch [extra] repo must be present (added by 880 or 881) for st/dmenu.
+#             Note: Arch [extra] repo must be present (added by 880 or 881) for dmenu.
 ##################################################################################################################################
 #
 #   DO NOT JUST RUN THIS. EXAMINE AND JUDGE. RUN AT YOUR OWN RISK.
@@ -48,8 +48,8 @@ tput sgr0
 ##################################################################################################################################
 
 echo
-echo "Installing runtime dependencies (st, dmenu) ..."
-sudo pacman -S --noconfirm --needed st dmenu
+echo "Installing runtime dependencies (alacritty, dmenu) ..."
+sudo pacman -S --noconfirm --needed alacritty dmenu
 
 tput setaf 2
 echo "Runtime dependencies installed."
@@ -63,7 +63,8 @@ echo
 DWM_SRC="$HOME/.local/src/dwm"
 
 if [ -d "$DWM_SRC/.git" ]; then
-    echo "dwm source found at $DWM_SRC — pulling latest ..."
+    echo "dwm source found at $DWM_SRC — resetting config.h and pulling latest ..."
+    git -C "$DWM_SRC" checkout config.h
     git -C "$DWM_SRC" pull
 else
     echo "Cloning github.com/zythros/dwm to $DWM_SRC ..."
@@ -76,38 +77,7 @@ echo "Source ready."
 tput sgr0
 
 ##################################################################################################################################
-# 4. Patch wallpaper keybindings into config.h
-##################################################################################################################################
-
-echo
-echo "Patching wallpaper keybinds into config.h ..."
-
-python3 - "$DWM_SRC/config.h" <<'PYPATCH'
-import sys
-path = sys.argv[1]
-text = open(path).read()
-if 'XK_w' in text:
-    print("wallpaper keybinds already present — skipping.")
-    sys.exit(0)
-insert = (
-    '\t{ MODKEY,                       XK_w,      spawn,          SHCMD("$HOME/.local/bin/wallpaper.sh next") },\n'
-    '\t{ MODKEY|ShiftMask,             XK_w,      spawn,          SHCMD("$HOME/.local/bin/wallpaper.sh prev") },\n'
-)
-marker = '\t{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },'
-new_text = text.replace(marker, insert + marker, 1)
-if new_text == text:
-    print("ERROR: marker line not found in config.h — patch not applied")
-    sys.exit(1)
-open(path, 'w').write(new_text)
-print("wallpaper keybinds added.")
-PYPATCH
-
-tput setaf 2
-echo "config.h patched."
-tput sgr0
-
-##################################################################################################################################
-# 5. Build and install
+# 4. Build and install
 ##################################################################################################################################
 
 echo
@@ -123,7 +93,7 @@ echo "dwm installed."
 tput sgr0
 
 ##################################################################################################################################
-# 6. Create LightDM xsessions entry (idempotent)
+# 5. Create LightDM xsessions entry (idempotent)
 ##################################################################################################################################
 
 echo
@@ -146,7 +116,7 @@ EOF
 fi
 
 ##################################################################################################################################
-# 7. Write ~/.dwm/keybindings.txt
+# 6. Write ~/.dwm/keybindings.txt
 ##################################################################################################################################
 
 echo
@@ -159,24 +129,24 @@ dwm keybindings  (Mod = Super / Windows key)
 =============================================
 
 Launching
+  Mod + Return          alacritty (terminal)
+  Mod + Shift + Return  thunar (file manager)
+  Mod + d               dmenu (run launcher)
   Mod + p               dmenu (run launcher)
-  Mod + Shift + Return  st (terminal)
+  Mod + m               mullvad-browser
 
 Windows
   Mod + j               focus next window
   Mod + k               focus previous window
-  Mod + Return          move focused window to master
   Mod + Shift + c       close focused window
   Mod + Shift + Space   toggle floating
 
 Layout
   Mod + t               tile layout
   Mod + f               floating layout
-  Mod + m               monocle layout
   Mod + h               shrink master area
   Mod + l               expand master area
   Mod + i               increase master count
-  Mod + d               decrease master count
 
 Tags (workspaces)
   Mod + Left            previous tag (wrap)
