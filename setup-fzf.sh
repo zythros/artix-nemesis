@@ -33,9 +33,14 @@ ENTRIES=(
 # Build menu lines and prompt with fzf
 ##################################################################################################################################
 
+MAX_LEN=0
+for (( i=0; i<${#ENTRIES[@]}; i+=2 )); do
+    (( ${#ENTRIES[i]} > MAX_LEN )) && MAX_LEN=${#ENTRIES[i]}
+done
+
 MENU_LINES=()
 for (( i=0; i<${#ENTRIES[@]}; i+=2 )); do
-    MENU_LINES+=("${ENTRIES[i]}  —  ${ENTRIES[i+1]}")
+    MENU_LINES+=("$(printf "%-${MAX_LEN}s  —  %s" "${ENTRIES[i]}" "${ENTRIES[i+1]}")")
 done
 
 SELECTED=$(printf '%s\n' "${MENU_LINES[@]}" | fzf \
