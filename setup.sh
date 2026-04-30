@@ -20,22 +20,6 @@ else
     TUI=dialog
 fi
 
-# Uniform dark-blue color scheme for dialog: suppress the red tag-key shortcut highlight
-# and make tag + item the same non-bold blue.
-if [ "$TUI" = "dialog" ]; then
-    _DRC=$(mktemp)
-    trap "rm -f '$_DRC'" EXIT
-    cat > "$_DRC" << 'EOF'
-tag_color = (BLUE,BLACK,OFF)
-tag_key_color = (BLUE,BLACK,OFF)
-tag_selected_color = (WHITE,BLUE,ON)
-tag_key_selected_color = (WHITE,BLUE,ON)
-item_color = (BLUE,BLACK,OFF)
-item_selected_color = (WHITE,BLUE,ON)
-EOF
-    export DIALOGRC="$_DRC"
-fi
-
 # Pairs: script filename, menu description (in desired run order)
 ENTRIES=(
     "801-chaotic-aur-setup.sh"  "Add Chaotic AUR pre-built repo to pacman"
