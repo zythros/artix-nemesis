@@ -61,12 +61,16 @@ trap "kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 
 pkg_install() {
     local pkg="$1"
-    # Try pacman (covers Artix repos + Chaotic AUR); fall back to yay for pure AUR
-    if timeout 30 sudo pacman -S --noconfirm --needed "$pkg" 2>/dev/null; then
+    # Remove stale lock left by a previous timeout-killed pacman
+    sudo rm -f /var/lib/pacman/db.lck
+    # Try pacman (covers Artix repos + Chaotic AUR); fall back to yay for pure AUR.
+    # 300s timeout guards against indefinitely hanging post-install hooks on Artix.
+    if timeout 300 sudo pacman -S --noconfirm --needed "$pkg"; then
         return 0
     fi
+    sudo rm -f /var/lib/pacman/db.lck  # clean up if timeout killed pacman
     if command -v yay &>/dev/null; then
-        timeout 60 yay -S --noconfirm --needed "$pkg"
+        timeout 300 yay -S --noconfirm --needed "$pkg"
         return $?
     fi
     return 1
@@ -132,7 +136,8 @@ for app in "${APPS[@]}"; do
     fi
 
     echo "Installing $app ..."
-    if pkg_install "$app" && pacman -Q "$app" &>/dev/null; then
+    pkg_install "$app" || true  # timeout/hook failures don't abort — check pacman -Q as truth
+    if pacman -Q "$app" &>/dev/null; then
         tput setaf 2
         echo "$app installed."
         tput sgr0
