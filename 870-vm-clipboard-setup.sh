@@ -1,4 +1,5 @@
 #!/bin/bash
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Set up host-VM clipboard sharing (copy/paste) via SPICE
@@ -20,13 +21,15 @@ if [ "$DEBUG" = true ]; then
     echo
 fi
 
+artix_pacman_nohook_setup
+
 ##################################################################################################################################
 # Check if running inside a VM
 ##################################################################################################################################
 
 # virt-what replaces systemd-detect-virt (not available on Artix/OpenRC)
 if ! command -v virt-what &>/dev/null; then
-    sudo pacman -S --noconfirm --needed virt-what
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed virt-what
 fi
 
 VIRT_TYPE=$(sudo virt-what 2>/dev/null | head -1)
@@ -54,9 +57,9 @@ echo "Detected virtualization: $VIRT_TYPE"
 echo
 echo "Installing VM guest packages..."
 
-sudo pacman -S --noconfirm --needed spice-vdagent
-sudo pacman -S --noconfirm --needed qemu-guest-agent
-sudo pacman -S --noconfirm --needed xclip
+sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed spice-vdagent
+sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed qemu-guest-agent
+sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed xclip
 
 ##################################################################################################################################
 # 2. Enable services (OpenRC)

@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Set up dwm as a desktop environment option.
@@ -32,12 +33,14 @@ echo "########################################################################"
 tput sgr0
 echo
 
+artix_pacman_nohook_setup
+
 ##################################################################################################################################
 # 1. Install build dependencies
 ##################################################################################################################################
 
 echo "Installing build dependencies ..."
-sudo pacman -S --noconfirm --needed base-devel libx11 libxft libxinerama
+sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed base-devel libx11 libxft libxinerama
 
 tput setaf 2
 echo "Build dependencies installed."
@@ -49,7 +52,7 @@ tput sgr0
 
 echo
 echo "Installing runtime dependencies (alacritty, dmenu) ..."
-sudo pacman -S --noconfirm --needed alacritty dmenu
+sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed alacritty dmenu
 
 tput setaf 2
 echo "Runtime dependencies installed."

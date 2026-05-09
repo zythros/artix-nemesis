@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Configure Xorg and kernel for dual NVIDIA GPUs
@@ -36,6 +37,8 @@ echo "########################################################################"
 tput sgr0
 echo
 
+artix_pacman_nohook_setup
+
 ##################################################################################################################################
 # Ensure Arch [extra] repo is available — nvidia-utils lives there, not in Artix's own repos.
 # artix-archlinux-support provides /etc/pacman.d/mirrorlist-arch; we add [extra] ourselves.
@@ -45,7 +48,7 @@ if ! pacman -Q artix-archlinux-support &>/dev/null; then
     tput setaf 3
     echo "artix-archlinux-support not installed — installing..."
     tput sgr0
-    sudo pacman -Sy --noconfirm artix-archlinux-support
+    sudo pacman --config "$NOHOOK_CONF" -Sy --noconfirm artix-archlinux-support
 fi
 
 if ! grep -q '^\[extra\]' /etc/pacman.conf; then
@@ -63,7 +66,7 @@ fi
 tput setaf 3
 echo "Syncing package databases..."
 tput sgr0
-sudo pacman -Sy
+sudo pacman --config "$NOHOOK_CONF" -Sy
 
 ##################################################################################################################################
 # Ensure nvidia-open-dkms, nvidia-utils, and nvidia-utils-openrc are installed.
@@ -80,7 +83,7 @@ if [ ${#NVIDIA_PKGS[@]} -gt 0 ]; then
     tput setaf 3
     echo "Installing missing NVIDIA packages: ${NVIDIA_PKGS[*]}"
     tput sgr0
-    if ! sudo pacman -S --noconfirm "${NVIDIA_PKGS[@]}"; then
+    if ! sudo pacman --config "$NOHOOK_CONF" -S --noconfirm "${NVIDIA_PKGS[@]}"; then
         tput setaf 1
         echo "ERROR: pacman failed to install NVIDIA packages. Aborting — xorg.conf will NOT be written."
         tput sgr0

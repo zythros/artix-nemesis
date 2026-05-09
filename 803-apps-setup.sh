@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Install base GUI applications.
@@ -54,20 +55,14 @@ echo
 sudo -v
 while true; do sudo -v; sleep 50; done &
 SUDO_KEEPALIVE=$!
-trap "kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+
+artix_pacman_nohook_setup
+# extend trap to also kill the sudo keepalive
+trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 
 ##################################################################################################################################
 # Helpers
 ##################################################################################################################################
-
-# Temporary pacman.conf with HookDir pointing to an empty dir — skips all hooks.
-# Hooks hang on Artix/OpenRC because they try to talk to D-Bus as root (no session available).
-# update-desktop-database and gtk-update-icon-cache are run once at end of script instead.
-NOHOOK_DIR="$(mktemp -d)"
-NOHOOK_CONF="$(mktemp)"
-sudo grep -v '^\s*HookDir' /etc/pacman.conf | sudo tee "$NOHOOK_CONF" > /dev/null
-echo "HookDir = $NOHOOK_DIR" | sudo tee -a "$NOHOOK_CONF" > /dev/null
-trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 
 pkg_install() {
     local pkg="$1"

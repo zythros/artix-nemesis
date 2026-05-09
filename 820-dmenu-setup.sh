@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Build dmenu from zythros fork; wire j4-dmenu-desktop into dwm
@@ -33,6 +34,8 @@ echo "################### Setting up dmenu (zythros fork)"
 echo "########################################################################"
 tput sgr0
 echo
+
+artix_pacman_nohook_setup
 
 ##################################################################################################################################
 # 1. Build dependencies

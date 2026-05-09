@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Install and configure Snapper for BTRFS snapshots (can be run standalone)
@@ -32,6 +33,8 @@ echo "################### Setting up Snapper (BTRFS snapshots)"
 echo "########################################################################"
 tput sgr0
 echo
+
+artix_pacman_nohook_setup
 
 ##################################################################################################################################
 # Check if root filesystem is BTRFS
@@ -97,7 +100,7 @@ tput setaf 3
 echo "Installing snapper packages..."
 tput sgr0
 
-if ! sudo pacman -S --noconfirm --needed $SNAPPER_PACKAGES; then
+if ! sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed $SNAPPER_PACKAGES; then
     tput setaf 1
     echo "ERROR: Failed to install snapper packages"
     echo "Check your internet connection and pacman configuration."

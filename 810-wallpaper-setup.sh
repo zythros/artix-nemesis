@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Set up wallpaper cycling system (can be run standalone)
@@ -34,6 +35,8 @@ echo "########################################################################"
 tput sgr0
 echo
 
+artix_pacman_nohook_setup
+
 ##################################################################################################################################
 # 1. Install feh
 ##################################################################################################################################
@@ -42,7 +45,7 @@ if ! command -v feh &>/dev/null; then
     tput setaf 3
     echo "Installing feh ..."
     tput sgr0
-    sudo pacman -S --noconfirm --needed feh
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed feh
 fi
 
 tput setaf 2

@@ -9,10 +9,12 @@
 ##################################################################################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib.sh"
 
 if ! command -v fzf &>/dev/null; then
     echo "Installing fzf..."
-    sudo pacman -S --noconfirm fzf || { echo "Could not install fzf — aborting" >&2; exit 1; }
+    artix_pacman_nohook_setup
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm fzf || { echo "Could not install fzf — aborting" >&2; exit 1; }
 fi
 
 # Pairs: script filename, description (in desired run order)

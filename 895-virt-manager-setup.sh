@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Install and configure virt-manager / QEMU-KVM on the host.
@@ -35,6 +36,8 @@ if [ "$DEBUG" = true ]; then
     read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
     echo
 fi
+
+artix_pacman_nohook_setup
 
 ##################################################################################################################################
 # 1. Install packages
@@ -77,10 +80,10 @@ PACKAGES=(
 # exfatprogs (pulled by libguestfs) conflicts with exfat-utils — remove it first if present
 if pacman -Q exfat-utils &>/dev/null; then
     echo "Removing conflicting exfat-utils ..."
-    sudo pacman -Rns --noconfirm exfat-utils
+    sudo pacman --config "$NOHOOK_CONF" -Rns --noconfirm exfat-utils
 fi
 
-if sudo pacman -S --noconfirm --needed "${PACKAGES[@]}"; then
+if sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed "${PACKAGES[@]}"; then
     tput setaf 2
     echo "Packages installed."
     tput sgr0

@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -e
+source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Add the Chaotic AUR pre-built repository to pacman and install yay.
@@ -49,15 +50,10 @@ tput sgr0
 # 2. Install the keyring and mirrorlist packages
 ##################################################################################################################################
 
+artix_pacman_nohook_setup
+
 echo
 echo "Installing chaotic-keyring and chaotic-mirrorlist ..."
-
-# Build nohook config early — hooks hang on Artix/OpenRC due to D-Bus unavailability
-NOHOOK_DIR="$(mktemp -d)"
-NOHOOK_CONF="$(mktemp)"
-sudo grep -v '^\s*HookDir' /etc/pacman.conf | sudo tee "$NOHOOK_CONF" > /dev/null
-echo "HookDir = $NOHOOK_DIR" | sudo tee -a "$NOHOOK_CONF" > /dev/null
-trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'" EXIT
 
 sudo pacman --config "$NOHOOK_CONF" -U --noconfirm \
     'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
@@ -94,7 +90,7 @@ fi
 
 echo
 echo "Syncing package databases ..."
-sudo pacman -Sy
+sudo pacman --config "$NOHOOK_CONF" -Sy
 
 tput setaf 2
 echo "Sync complete."
