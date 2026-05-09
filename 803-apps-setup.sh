@@ -23,6 +23,7 @@ APPS=(
     vlc                  # media player (codecs: libdvdcss libdvdread libdvdnav libbluray auto-installed)
     kdenlive             # video editor
     krename              # batch file renamer
+    flameshot            # screenshot tool with annotation
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
