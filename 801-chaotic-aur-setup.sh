@@ -2,7 +2,7 @@
 #set -e
 ##################################################################################################################################
 # Author    : zythros
-# Purpose   : Add the Chaotic AUR pre-built repository to pacman.
+# Purpose   : Add the Chaotic AUR pre-built repository to pacman and install yay.
 #             Chaotic AUR provides pre-built AUR packages (e.g. bridge-utils, many others).
 #             https://aur.chaotic.cx
 ##################################################################################################################################
@@ -94,6 +94,21 @@ echo "Sync complete."
 tput sgr0
 
 ##################################################################################################################################
+# 5. Install yay (AUR helper, available from Chaotic AUR)
+##################################################################################################################################
+
+echo
+if pacman -Q yay &>/dev/null; then
+    echo "yay already installed — skipping."
+else
+    echo "Installing yay ..."
+    sudo pacman -S --noconfirm yay
+    tput setaf 2
+    echo "yay installed."
+    tput sgr0
+fi
+
+##################################################################################################################################
 
 echo
 tput setaf 6
@@ -101,8 +116,9 @@ echo "##############################################################"
 echo "###################  $(basename $0) done"
 echo "##############################################################"
 echo
-echo "Chaotic AUR is now available."
-echo "Install AUR packages directly with pacman, e.g.:"
+echo "Chaotic AUR is now available and yay is installed."
+echo "Install AUR packages directly with pacman or yay, e.g.:"
 echo "  sudo pacman -S bridge-utils"
+echo "  yay -S some-aur-package"
 echo
 tput sgr0
