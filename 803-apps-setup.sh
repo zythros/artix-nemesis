@@ -60,18 +60,27 @@ trap "kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 # Helpers
 ##################################################################################################################################
 
+# Temporary pacman.conf with HookDir pointing to an empty dir — skips all hooks.
+# Hooks hang on Artix/OpenRC because they try to talk to D-Bus as root (no session available).
+# update-desktop-database and gtk-update-icon-cache are run once at end of script instead.
+NOHOOK_DIR="$(mktemp -d)"
+NOHOOK_CONF="$(mktemp)"
+sudo grep -v '^\s*HookDir' /etc/pacman.conf | sudo tee "$NOHOOK_CONF" > /dev/null
+echo "HookDir = $NOHOOK_DIR" | sudo tee -a "$NOHOOK_CONF" > /dev/null
+trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+
 pkg_install() {
     local pkg="$1"
     # Remove stale lock left by a previous timeout-killed pacman
     sudo rm -f /var/lib/pacman/db.lck
-    # Try pacman (covers Artix repos + Chaotic AUR); fall back to yay for pure AUR.
-    # 300s timeout guards against indefinitely hanging post-install hooks on Artix.
-    if timeout 300 sudo pacman -S --noconfirm --needed "$pkg"; then
+    # Use nohook config — avoids D-Bus hook hang on Artix/OpenRC.
+    # Fall back to yay (with same nohook conf) for pure AUR packages.
+    if sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed "$pkg"; then
         return 0
     fi
-    sudo rm -f /var/lib/pacman/db.lck  # clean up if timeout killed pacman
+    sudo rm -f /var/lib/pacman/db.lck
     if command -v yay &>/dev/null; then
-        timeout 300 yay -S --noconfirm --needed "$pkg"
+        yay --pacmanconf "$NOHOOK_CONF" -S --noconfirm --needed "$pkg"
         return $?
     fi
     return 1
@@ -150,6 +159,18 @@ for app in "${APPS[@]}"; do
         FAILED+=("$app")
     fi
 done
+
+##################################################################################################################################
+# Run desktop/icon hooks manually now that all installs are complete
+##################################################################################################################################
+
+echo
+echo "Updating desktop database and icon caches ..."
+sudo update-desktop-database &>/dev/null || true
+sudo gtk-update-icon-cache -f /usr/share/icons/hicolor &>/dev/null || true
+tput setaf 2
+echo "Done."
+tput sgr0
 
 ##################################################################################################################################
 
