@@ -52,7 +52,14 @@ tput sgr0
 echo
 echo "Installing chaotic-keyring and chaotic-mirrorlist ..."
 
-sudo pacman -U --noconfirm \
+# Build nohook config early — hooks hang on Artix/OpenRC due to D-Bus unavailability
+NOHOOK_DIR="$(mktemp -d)"
+NOHOOK_CONF="$(mktemp)"
+sudo grep -v '^\s*HookDir' /etc/pacman.conf | sudo tee "$NOHOOK_CONF" > /dev/null
+echo "HookDir = $NOHOOK_DIR" | sudo tee -a "$NOHOOK_CONF" > /dev/null
+trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'" EXIT
+
+sudo pacman --config "$NOHOOK_CONF" -U --noconfirm \
     'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
     'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 
@@ -102,8 +109,7 @@ if pacman -Q yay &>/dev/null; then
     echo "yay already installed — skipping."
 else
     echo "Installing yay ..."
-    # timeout guards against pacman post-install hooks that hang on Artix (no systemd)
-    timeout 30 sudo pacman -S --noconfirm yay || true
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm yay || true
     if pacman -Q yay &>/dev/null; then
         tput setaf 2
         echo "yay installed."
