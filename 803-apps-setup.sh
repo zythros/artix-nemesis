@@ -20,6 +20,7 @@ APPS=(
     gimp                 # image editor
     freetube             # YouTube frontend
     darktable            # RAW photo editor
+    vlc                  # media player (codecs: libdvdcss libdvdread libdvdnav libbluray auto-installed)
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,20 @@ pkg_install() {
 post_install() {
     local pkg="$1"
     case "$pkg" in
+        vlc)
+            # Codec packages not always pulled in as hard deps
+            local codecs=(libdvdcss libdvdread libdvdnav libbluray)
+            tput setaf 6
+            echo "  → installing VLC codec packages: ${codecs[*]}"
+            tput sgr0
+            for codec in "${codecs[@]}"; do
+                if pacman -Q "$codec" &>/dev/null; then
+                    echo "    $codec already installed — skipping."
+                else
+                    pkg_install "$codec" && echo "    $codec installed." || echo "    WARNING: $codec failed." >&2
+                fi
+            done
+            ;;
         gparted)
             # polkit service not available on Artix — run via alacritty+sudo instead
             local desktop="$HOME/.local/share/applications/gparted.desktop"

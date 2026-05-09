@@ -19,7 +19,7 @@ fi
 ENTRIES=(
     "801-chaotic-aur-setup.sh"  "Add Chaotic AUR pre-built repo to pacman + install yay"
     "802-dwm-setup.sh"          "Build and install dwm window manager"
-    "803-apps-setup.sh"         "Install base GUI apps (gparted, mullvad, gimp, freetube, darktable)"
+    "803-apps-setup.sh"         "Install base GUI apps (gparted, mullvad, gimp, freetube, darktable, vlc)"
     "810-wallpaper-setup.sh"    "Set up wallpaper cycling system"
     "820-dmenu-setup.sh"        "Build dmenu; wire j4-dmenu-desktop into dwm"
     "840-snapper-setup.sh"      "Configure Snapper for BTRFS snapshots"
