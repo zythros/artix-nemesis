@@ -102,10 +102,18 @@ if pacman -Q yay &>/dev/null; then
     echo "yay already installed — skipping."
 else
     echo "Installing yay ..."
-    sudo pacman -S --noconfirm yay
-    tput setaf 2
-    echo "yay installed."
-    tput sgr0
+    # timeout guards against pacman post-install hooks that hang on Artix (no systemd)
+    timeout 30 sudo pacman -S --noconfirm yay || true
+    if pacman -Q yay &>/dev/null; then
+        tput setaf 2
+        echo "yay installed."
+        tput sgr0
+    else
+        tput setaf 1
+        echo "ERROR: yay installation failed." >&2
+        tput sgr0
+        exit 1
+    fi
 fi
 
 ##################################################################################################################################
