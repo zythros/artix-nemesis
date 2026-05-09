@@ -21,6 +21,8 @@ APPS=(
     freetube             # YouTube frontend
     darktable            # RAW photo editor
     vlc                  # media player (codecs: libdvdcss libdvdread libdvdnav libbluray auto-installed)
+    kdenlive             # video editor
+    krename              # batch file renamer
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
