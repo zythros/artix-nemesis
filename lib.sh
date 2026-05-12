@@ -18,8 +18,9 @@
 artix_pacman_nohook_setup() {
     NOHOOK_DIR="$(mktemp -d)"
     NOHOOK_CONF="$(mktemp)"
-    sudo grep -v '^\s*HookDir' /etc/pacman.conf | sudo tee "$NOHOOK_CONF" > /dev/null
-    echo "HookDir = $NOHOOK_DIR" | sudo tee -a "$NOHOOK_CONF" > /dev/null
+    sudo cp /etc/pacman.conf "$NOHOOK_CONF"
+    sudo sed -i '/^\s*HookDir/d' "$NOHOOK_CONF"
+    printf 'HookDir = %s\n' "$NOHOOK_DIR" | sudo tee -a "$NOHOOK_CONF" > /dev/null
     export NOHOOK_DIR NOHOOK_CONF
     trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'" EXIT
 }

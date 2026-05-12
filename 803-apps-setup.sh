@@ -25,9 +25,16 @@ APPS=(
     kdenlive             # video editor
     krename              # batch file renamer
     flameshot            # screenshot tool with annotation
-    freecad-git          # parametric 3D CAD modeler (Chaotic AUR — run 801 first)
+    freecad-git          # parametric 3D CAD modeler (Chaotic AUR)
 )
 # ─────────────────────────────────────────────────────────────────────────────
+
+if ! grep -q '^\[chaotic-aur\]' /etc/pacman.conf 2>/dev/null; then
+    tput setaf 1
+    echo "ERROR: Chaotic AUR is not configured. Run 801-chaotic-aur-setup.sh first." >&2
+    tput sgr0
+    exit 1
+fi
 
 if [ "$DEBUG" = true ]; then
     echo
