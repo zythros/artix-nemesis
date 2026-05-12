@@ -25,7 +25,7 @@ APPS=(
     kdenlive             # video editor
     krename              # batch file renamer
     flameshot            # screenshot tool with annotation
-    freecad-git          # parametric 3D CAD modeler (Chaotic AUR)
+    freecad              # parametric 3D CAD modeler
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
