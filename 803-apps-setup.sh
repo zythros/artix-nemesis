@@ -83,7 +83,7 @@ pkg_install() {
     fi
     sudo rm -f /var/lib/pacman/db.lck
     if command -v yay &>/dev/null; then
-        yay --pacmanconf "$NOHOOK_CONF" -S --noconfirm --needed "$pkg"
+        yay --config "$NOHOOK_CONF" -S --noconfirm --needed "$pkg"
         return $?
     fi
     return 1
