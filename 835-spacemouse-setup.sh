@@ -150,7 +150,29 @@ sudo pacman --config "$NOHOOK_CONF" -U --noconfirm "$PKG" || {
 tput setaf 2; echo "  spacenavd installed."; tput sgr0
 
 ##################################################################################################################################
-# Step 3: OpenRC init script
+# Step 3: spnavcfg (interactive GUI for live sensitivity/axis tuning)
+##################################################################################################################################
+
+echo
+tput setaf 3
+echo "── Installing spnavcfg (spacenav GUI configurator) ──────────────────────"
+tput sgr0
+
+if pacman -Q spnavcfg &>/dev/null; then
+    echo "  spnavcfg already installed."
+elif command -v yay &>/dev/null; then
+    echo "  Building spnavcfg from AUR ..."
+    yay -S --noconfirm spnavcfg && { tput setaf 2; echo "  spnavcfg installed."; tput sgr0; } \
+        || { tput setaf 1; echo "  WARNING: spnavcfg install failed — configure /etc/spnavrc manually" >&2; tput sgr0; }
+else
+    tput setaf 3
+    echo "  WARNING: yay not found — skipping spnavcfg (run 801 first, then reinstall)" >&2
+    tput sgr0
+fi
+
+##################################################################################################################################
+# Step 4: OpenRC init script
+
 ##################################################################################################################################
 
 echo
@@ -186,7 +208,7 @@ sudo chmod 755 /etc/init.d/spacenavd
 tput setaf 2; echo "  /etc/init.d/spacenavd written."; tput sgr0
 
 ##################################################################################################################################
-# Step 4: Enable and start service
+# Step 5: Enable and start service
 ##################################################################################################################################
 
 echo
