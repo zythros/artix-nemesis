@@ -24,6 +24,7 @@ ENTRIES=(
     "803-apps-setup.sh"         "Install preferred apps"
     "810-wallpaper-setup.sh"    "Set up wallpaper cycling system"
     "820-dmenu-setup.sh"        "Build dmenu; wire j4-dmenu-desktop into dwm"
+    "835-spacemouse-setup.sh"   "Build spacenavd; configure SpaceNavigator for FreeCAD"
     "840-snapper-setup.sh"      "Configure Snapper for BTRFS snapshots"
     "870-vm-clipboard-setup.sh" "SPICE clipboard sharing (VM guests only)"
     "880-nvidia-bm-setup.sh"    "NVIDIA drivers — bare metal (dual GPU)"
