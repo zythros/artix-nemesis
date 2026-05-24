@@ -37,29 +37,11 @@ echo
 ##################################################################################################################################
 
 sudo -v
-while true; do sudo -v; sleep 50; done &
+while true; do timeout 30 sudo -v; sleep 50; done &
 SUDO_KEEPALIVE=$!
 
 artix_pacman_nohook_setup
 trap "artix_pacman_cleanup; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
-
-##################################################################################################################################
-# Helper
-##################################################################################################################################
-
-pkg_install() {
-    local pkg="$1"
-    sudo rm -f /var/lib/pacman/db.lck
-    if sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed "$pkg"; then
-        return 0
-    fi
-    sudo rm -f /var/lib/pacman/db.lck
-    if command -v yay &>/dev/null; then
-        yay --config "$NOHOOK_CONF" -S --noconfirm --needed "$pkg"
-        return $?
-    fi
-    return 1
-}
 
 ##################################################################################################################################
 # 1. CUPS

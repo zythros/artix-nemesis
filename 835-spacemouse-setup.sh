@@ -39,7 +39,7 @@ echo
 ##################################################################################################################################
 
 sudo -v
-while true; do sudo -v; sleep 50; done &
+while true; do timeout 30 sudo -v; sleep 50; done &
 SUDO_KEEPALIVE=$!
 
 artix_pacman_nohook_setup
