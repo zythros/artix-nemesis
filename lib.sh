@@ -21,7 +21,7 @@ artix_pacman_nohook_setup() {
     # grep -v instead of sed -i avoids the sed temp-file ownership swap that
     # causes "Permission denied" when bash later tries to redirect into the file.
     NOHOOK_CONF="$(sudo mktemp)"
-    sudo sh -c "grep -v '^\s*HookDir' /etc/pacman.conf > '$NOHOOK_CONF'; printf '\nHookDir = %s\n' '$NOHOOK_DIR' >> '$NOHOOK_CONF'"
+    sudo sh -c "grep -v '^\s*HookDir' /etc/pacman.conf | sed '/^\[options\]/a HookDir = $NOHOOK_DIR' > '$NOHOOK_CONF'"
     export NOHOOK_DIR NOHOOK_CONF
     trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'" EXIT
 }
