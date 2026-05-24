@@ -66,7 +66,7 @@ SUDO_KEEPALIVE=$!
 
 artix_pacman_nohook_setup
 # extend trap to also kill the sudo keepalive
-trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+trap "artix_pacman_cleanup; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 
 ##################################################################################################################################
 # Helpers

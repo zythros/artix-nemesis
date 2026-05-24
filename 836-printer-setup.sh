@@ -41,7 +41,7 @@ while true; do sudo -v; sleep 50; done &
 SUDO_KEEPALIVE=$!
 
 artix_pacman_nohook_setup
-trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+trap "artix_pacman_cleanup; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 
 ##################################################################################################################################
 # Helper

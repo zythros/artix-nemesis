@@ -43,7 +43,7 @@ while true; do sudo -v; sleep 50; done &
 SUDO_KEEPALIVE=$!
 
 artix_pacman_nohook_setup
-trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+trap "artix_pacman_cleanup; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 
 ##################################################################################################################################
 # Step 1: Build and runtime dependencies
@@ -86,7 +86,7 @@ echo "── Building spacenavd from source ────────────
 tput sgr0
 
 BUILD_DIR="$(mktemp -d)"
-trap "sudo rm -rf '$NOHOOK_DIR' '$NOHOOK_CONF'; rm -rf '$BUILD_DIR'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+trap "artix_pacman_cleanup; rm -rf '$BUILD_DIR'; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
 
 cat > "$BUILD_DIR/PKGBUILD" <<'PKGEOF'
 pkgname=spacenavd
