@@ -171,6 +171,11 @@ else
     tput setaf 2; echo "epsonds.conf updated."; tput sgr0
 fi
 
+# Hooks are skipped (nohook conf) — update desktop DB manually so dmenu sees simple-scan
+echo "Updating desktop database ..."
+sudo update-desktop-database /usr/share/applications &>/dev/null || true
+tput setaf 2; echo "Desktop database updated."; tput sgr0
+
 ##################################################################################################################################
 # 5. Epson ESCPR2 driver  (ET-3950 requires ESCPR2, not the older ESCPR)
 ##################################################################################################################################
