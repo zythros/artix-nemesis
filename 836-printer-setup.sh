@@ -117,7 +117,28 @@ else
 fi
 
 ##################################################################################################################################
-# 3. Epson ESCPR2 driver  (ET-3950 requires ESCPR2, not the older ESCPR)
+# 3. Print job manager GUI
+##################################################################################################################################
+
+echo
+tput setaf 3
+echo "── system-config-printer ─────────────────────────────────────"
+tput sgr0
+
+if pacman -Q system-config-printer &>/dev/null; then
+    echo "system-config-printer already installed — skipping."
+else
+    echo "Installing system-config-printer ..."
+    pkg_install system-config-printer || true
+    if pacman -Q system-config-printer &>/dev/null; then
+        tput setaf 2; echo "system-config-printer installed."; tput sgr0
+    else
+        tput setaf 1; echo "ERROR: system-config-printer installation failed." >&2; tput sgr0
+    fi
+fi
+
+##################################################################################################################################
+# 5. Epson ESCPR2 driver  (ET-3950 requires ESCPR2, not the older ESCPR)
 ##################################################################################################################################
 
 echo
@@ -139,7 +160,7 @@ else
 fi
 
 ##################################################################################################################################
-# 4. Enable and start services (OpenRC)
+# 6. Enable and start services (OpenRC)
 ##################################################################################################################################
 
 echo
@@ -163,7 +184,7 @@ for svc in cupsd avahi-daemon; do
 done
 
 ##################################################################################################################################
-# 5. Add current user to lp group (required for printer access)
+# 7. Add current user to lp group (required for printer access)
 ##################################################################################################################################
 
 echo
@@ -181,7 +202,7 @@ else
 fi
 
 ##################################################################################################################################
-# 6. Add the ET-3950 to CUPS
+# 8. Add the ET-3950 to CUPS
 ##################################################################################################################################
 
 PRINTER_NAME="Epson-ET-3950"
