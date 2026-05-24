@@ -27,7 +27,7 @@ fi
 echo
 tput setaf 2
 echo "########################################################################"
-echo "################### Setting up Epson ET-3950 printer"
+echo "################### Setting up Epson ET-3950 printer + scanner"
 echo "########################################################################"
 tput sgr0
 echo
@@ -135,6 +135,40 @@ else
     else
         tput setaf 1; echo "ERROR: system-config-printer installation failed." >&2; tput sgr0
     fi
+fi
+
+##################################################################################################################################
+# 4. SANE + Simple Scan (scanner support)
+##################################################################################################################################
+
+echo
+tput setaf 3
+echo "── SANE + Simple Scan (scanner) ──────────────────────────────"
+tput sgr0
+
+for pkg in sane simple-scan; do
+    if pacman -Q "$pkg" &>/dev/null; then
+        echo "$pkg already installed — skipping."
+    else
+        echo "Installing $pkg ..."
+        pkg_install "$pkg" || true
+        if pacman -Q "$pkg" &>/dev/null; then
+            tput setaf 2; echo "$pkg installed."; tput sgr0
+        else
+            tput setaf 1; echo "ERROR: $pkg installation failed." >&2; tput sgr0
+        fi
+    fi
+done
+
+# Add printer IP to epsonds backend so SANE can find the network scanner
+EPSONDS_CONF="/etc/sane.d/epsonds.conf"
+PRINTER_IP="10.0.100.103"
+if grep -qF "net $PRINTER_IP" "$EPSONDS_CONF" 2>/dev/null; then
+    echo "epsonds.conf already has $PRINTER_IP — skipping."
+else
+    echo "Adding $PRINTER_IP to $EPSONDS_CONF ..."
+    echo "net $PRINTER_IP" | sudo tee -a "$EPSONDS_CONF" > /dev/null
+    tput setaf 2; echo "epsonds.conf updated."; tput sgr0
 fi
 
 ##################################################################################################################################
