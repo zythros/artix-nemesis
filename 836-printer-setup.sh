@@ -143,10 +143,10 @@ fi
 
 echo
 tput setaf 3
-echo "── SANE + Simple Scan (scanner) ──────────────────────────────"
+echo "── SANE + XSane (scanner) ────────────────────────────────────"
 tput sgr0
 
-for pkg in sane simple-scan; do
+for pkg in sane xsane; do
     if pacman -Q "$pkg" &>/dev/null; then
         echo "$pkg already installed — skipping."
     else
