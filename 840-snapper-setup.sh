@@ -191,7 +191,7 @@ if [ -f "$SNAPPER_CONFIG" ]; then
 
     # Allow user to use snapper (add to ALLOW_USERS)
     CURRENT_USER=$(whoami)
-    if ! grep -q "ALLOW_USERS=\".*$CURRENT_USER" "$SNAPPER_CONFIG"; then
+    if ! sudo grep -q "ALLOW_USERS=\".*$CURRENT_USER" "$SNAPPER_CONFIG"; then
         sudo sed -i "s/ALLOW_USERS=\"\"/ALLOW_USERS=\"$CURRENT_USER\"/" "$SNAPPER_CONFIG"
         tput setaf 2
         echo "Added $CURRENT_USER to ALLOW_USERS"
@@ -224,21 +224,25 @@ tput setaf 3
 echo "Enabling snapper OpenRC services..."
 tput sgr0
 
-# Timeline service: takes hourly snapshots
-if sudo rc-update add snapper-timeline default && sudo rc-service snapper-timeline start; then
-    tput setaf 2
-    echo "snapper-timeline enabled and started"
-    tput sgr0
+# snapper-timeline and snapper-cleanup are only available if snapper-openrc was installed
+if pacman -Q snapper-openrc &>/dev/null; then
+    if sudo rc-update add snapper-timeline default && sudo rc-service snapper-timeline start; then
+        tput setaf 2
+        echo "snapper-timeline enabled and started"
+        tput sgr0
+    else
+        WARNINGS+=("snapper-timeline: Failed to enable (hourly snapshots won't run automatically)")
+    fi
+
+    if sudo rc-update add snapper-cleanup default && sudo rc-service snapper-cleanup start; then
+        tput setaf 2
+        echo "snapper-cleanup enabled and started"
+        tput sgr0
+    else
+        WARNINGS+=("snapper-cleanup: Failed to enable (old snapshots won't be cleaned automatically)")
+    fi
 else
     WARNINGS+=("snapper-timeline: Failed to enable (hourly snapshots won't run automatically)")
-fi
-
-# Cleanup service: removes old snapshots based on limits
-if sudo rc-update add snapper-cleanup default && sudo rc-service snapper-cleanup start; then
-    tput setaf 2
-    echo "snapper-cleanup enabled and started"
-    tput sgr0
-else
     WARNINGS+=("snapper-cleanup: Failed to enable (old snapshots won't be cleaned automatically)")
 fi
 
@@ -251,13 +255,21 @@ echo "Enabling grub-btrfsd service..."
 tput sgr0
 
 # grub-btrfsd watches for new snapshots and regenerates grub menu
-if sudo rc-update add grub-btrfsd default && sudo rc-service grub-btrfsd start; then
-    tput setaf 2
-    echo "grub-btrfsd enabled and started (snapshots will appear in GRUB menu)"
-    tput sgr0
+# Only attempt if the OpenRC service file was installed by grub-btrfs or grub-btrfs-openrc
+if [ -f /etc/init.d/grub-btrfsd ]; then
+    if sudo rc-update add grub-btrfsd default && sudo rc-service grub-btrfsd start; then
+        tput setaf 2
+        echo "grub-btrfsd enabled and started (snapshots will appear in GRUB menu)"
+        tput sgr0
+    else
+        tput setaf 3
+        echo "WARNING: Failed to enable grub-btrfsd service"
+        tput sgr0
+        WARNINGS+=("grub-btrfsd: Failed to enable (snapshots won't auto-update in GRUB menu)")
+    fi
 else
     tput setaf 3
-    echo "WARNING: Failed to enable grub-btrfsd service"
+    echo "WARNING: grub-btrfsd OpenRC service not found — grub-btrfs may not include it on Artix"
     tput sgr0
     WARNINGS+=("grub-btrfsd: Failed to enable (snapshots won't auto-update in GRUB menu)")
 fi

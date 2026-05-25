@@ -104,15 +104,23 @@ else
     echo "NVIDIA packages already installed."
 fi
 
-# Verify DKMS built modules for the running kernel
+# Verify DKMS built modules for the running kernel; attempt rebuild if missing
 KVER=$(uname -r)
 if ! ls /usr/lib/modules/"$KVER"/extra/nvidia*.ko* 2>/dev/null | grep -q nvidia && \
    ! ls /usr/lib/modules/"$KVER"/extramodules/nvidia*.ko* 2>/dev/null | grep -q nvidia; then
-    tput setaf 1
-    echo "ERROR: nvidia DKMS modules not found for kernel $KVER — DKMS build may have failed."
-    echo "       Run: sudo dkms status"
+    tput setaf 3
+    echo "nvidia DKMS modules not found for kernel $KVER — attempting dkms autoinstall..."
     tput sgr0
-    exit 1
+    sudo dkms autoinstall
+    # Re-check after rebuild attempt
+    if ! ls /usr/lib/modules/"$KVER"/extra/nvidia*.ko* 2>/dev/null | grep -q nvidia && \
+       ! ls /usr/lib/modules/"$KVER"/extramodules/nvidia*.ko* 2>/dev/null | grep -q nvidia; then
+        tput setaf 1
+        echo "ERROR: nvidia DKMS modules still not found for kernel $KVER after autoinstall."
+        echo "       Run: sudo dkms status"
+        tput sgr0
+        exit 1
+    fi
 fi
 tput setaf 2
 echo "nvidia DKMS modules verified for kernel $KVER."
