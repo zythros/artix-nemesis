@@ -219,14 +219,7 @@ tput sgr0
 sudo rc-update add spacenavd default 2>/dev/null || true
 echo "  spacenavd enabled in default runlevel."
 
-# Kill any manually-started spacenavd before handing off to rc-service
-if pgrep -x spacenavd > /dev/null; then
-    echo "  Stopping existing spacenavd process ..."
-    sudo pkill -x spacenavd || true
-    sleep 1
-fi
-
-sudo rc-service spacenavd start && { tput setaf 2; echo "  spacenavd started."; tput sgr0; } || {
+sudo rc-service spacenavd restart && { tput setaf 2; echo "  spacenavd started."; tput sgr0; } || {
     tput setaf 1; echo "ERROR: spacenavd failed to start" >&2; tput sgr0; exit 1
 }
 
@@ -234,7 +227,7 @@ sudo rc-service spacenavd start && { tput setaf 2; echo "  spacenavd started."; 
 # Verify
 ##################################################################################################################################
 
-sleep 1
+sleep 2
 if [ -S /var/run/spnav.sock ]; then
     tput setaf 2
     echo
