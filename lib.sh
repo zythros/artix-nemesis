@@ -35,6 +35,7 @@ artix_pacman_nohook_setup() {
     NOHOOK_DIR="$(mktemp -d)"
     # Create the conf file as root so all subsequent writes stay root→root.
     NOHOOK_CONF="$(sudo mktemp)"
+    sudo chmod 644 "$NOHOOK_CONF"
     sudo sh -c "grep -v '^\s*HookDir' /etc/pacman.conf | sed '/^\[options\]/a HookDir = $NOHOOK_DIR' > '$NOHOOK_CONF'"
     # Move system hooks aside; pacman always searches /usr/share/libalpm/hooks/
     # regardless of HookDir — this stops dbus-reload.hook etc. from hanging.

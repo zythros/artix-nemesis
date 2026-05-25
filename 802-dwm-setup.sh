@@ -72,7 +72,14 @@ if [ -d "$DWM_SRC/.git" ]; then
 else
     echo "Cloning github.com/zythros/dwm to $DWM_SRC ..."
     mkdir -p "$(dirname "$DWM_SRC")"
-    git clone git@github.com:zythros/dwm.git "$DWM_SRC"
+    git clone https://github.com/zythros/dwm.git "$DWM_SRC"
+fi
+
+if [ ! -d "$DWM_SRC/.git" ]; then
+    tput setaf 1
+    echo "ERROR: git clone failed — check internet connection"
+    tput sgr0
+    exit 1
 fi
 
 tput setaf 2

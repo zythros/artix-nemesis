@@ -38,6 +38,7 @@ if [ "$DEBUG" = true ]; then
 fi
 
 artix_pacman_nohook_setup
+sudo pacman --config "$NOHOOK_CONF" -Sy
 
 ##################################################################################################################################
 # 1. Install packages

@@ -36,13 +36,14 @@ tput sgr0
 echo
 
 artix_pacman_nohook_setup
+sudo pacman --config "$NOHOOK_CONF" -Sy
 
 ##################################################################################################################################
 # 1. Build dependencies
 ##################################################################################################################################
 
 echo "Checking build dependencies ..."
-sudo pacman -S --noconfirm --needed base-devel libx11 libxft libxinerama
+sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed base-devel libx11 libxft libxinerama
 
 tput setaf 2
 echo "Build dependencies ready."
@@ -57,7 +58,7 @@ if ! command -v j4-dmenu-desktop &>/dev/null; then
     echo
     echo "Installing j4-dmenu-desktop ..."
     tput sgr0
-    sudo pacman -S --noconfirm --needed j4-dmenu-desktop
+    pkg_install j4-dmenu-desktop
 fi
 
 tput setaf 2
@@ -96,13 +97,20 @@ elif [ -d "$DMENU_SRC" ]; then
     echo "Backing up existing $DMENU_SRC and cloning ..."
     tput sgr0
     mv "$DMENU_SRC" "${DMENU_SRC}.backup.$(date +%s)"
-    git clone git@github.com:zythros/dmenu.git "$DMENU_SRC"
+    git clone https://github.com/zythros/dmenu.git "$DMENU_SRC"
 else
     tput setaf 3
     echo "Cloning github.com/zythros/dmenu to $DMENU_SRC ..."
     tput sgr0
     mkdir -p "$(dirname "$DMENU_SRC")"
-    git clone git@github.com:zythros/dmenu.git "$DMENU_SRC"
+    git clone https://github.com/zythros/dmenu.git "$DMENU_SRC"
+fi
+
+if [ ! -d "$DMENU_SRC/.git" ]; then
+    tput setaf 1
+    echo "ERROR: git clone failed — check internet connection"
+    tput sgr0
+    exit 1
 fi
 
 tput setaf 2

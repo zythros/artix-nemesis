@@ -84,8 +84,28 @@ EOF
     tput sgr0
 fi
 
-# Refresh NOHOOK_CONF so it includes [chaotic-aur] — it was snapshotted before
-# the section was added above, so pacman wouldn't find yay without this.
+# Also set up Arch [extra] here so that scripts running after 801 (803, 802, 820, etc.)
+# can install packages like freecad, libx11, libxft without depending on 880 having run.
+if ! pacman -Q artix-archlinux-support &>/dev/null; then
+    echo "Installing artix-archlinux-support ..."
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm artix-archlinux-support
+fi
+
+if ! grep -q '^\[extra\]' /etc/pacman.conf; then
+    echo "Adding Arch [extra] to $PACMAN_CONF ..."
+    sudo tee -a /etc/pacman.conf > /dev/null <<'PACMAN_EOF'
+
+# Arch Linux [extra] repo — added by 801-chaotic-aur-setup.sh
+[extra]
+Include = /etc/pacman.d/mirrorlist-arch
+PACMAN_EOF
+    tput setaf 2
+    echo "[extra] added to $PACMAN_CONF"
+    tput sgr0
+fi
+
+# Refresh NOHOOK_CONF so it includes both [chaotic-aur] and [extra] — it was snapshotted
+# before these sections were added above, so pacman wouldn't see them without this refresh.
 sudo sh -c "grep -v '^\s*HookDir' /etc/pacman.conf | sed '/^\[options\]/a HookDir = $NOHOOK_DIR' > '$NOHOOK_CONF'"
 
 ##################################################################################################################################
@@ -130,7 +150,7 @@ echo "##############################################################"
 echo "###################  $(basename $0) done"
 echo "##############################################################"
 echo
-echo "Chaotic AUR is now available and yay is installed."
+echo "Chaotic AUR and Arch [extra] are now available; yay is installed."
 echo "Install AUR packages directly with pacman or yay, e.g.:"
 echo "  sudo pacman -S bridge-utils"
 echo "  yay -S some-aur-package"

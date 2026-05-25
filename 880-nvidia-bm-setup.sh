@@ -63,6 +63,14 @@ Include = /etc/pacman.d/mirrorlist-arch
 PACMAN_EOF
 fi
 
+# [extra] may have just been added — regenerate NOHOOK_CONF so -Sy includes it
+# (same pattern as 801 fix for [chaotic-aur]: NOHOOK_CONF was generated before the repo was appended)
+sudo rm -f "$NOHOOK_CONF"
+NOHOOK_CONF="$(sudo mktemp)"
+sudo chmod 644 "$NOHOOK_CONF"
+sudo sh -c "grep -v '^\s*HookDir' /etc/pacman.conf | sed '/^\[options\]/a HookDir = $NOHOOK_DIR' > '$NOHOOK_CONF'"
+export NOHOOK_CONF
+
 tput setaf 3
 echo "Syncing package databases..."
 tput sgr0
@@ -98,7 +106,8 @@ fi
 
 # Verify DKMS built modules for the running kernel
 KVER=$(uname -r)
-if ! ls /usr/lib/modules/"$KVER"/extramodules/nvidia*.ko* 2>/dev/null | grep -q nvidia; then
+if ! ls /usr/lib/modules/"$KVER"/extra/nvidia*.ko* 2>/dev/null | grep -q nvidia && \
+   ! ls /usr/lib/modules/"$KVER"/extramodules/nvidia*.ko* 2>/dev/null | grep -q nvidia; then
     tput setaf 1
     echo "ERROR: nvidia DKMS modules not found for kernel $KVER — DKMS build may have failed."
     echo "       Run: sudo dkms status"

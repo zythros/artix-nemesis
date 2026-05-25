@@ -94,7 +94,12 @@ tput sgr0
 # snapper-openrc provides OpenRC init scripts for snapper-timeline and snapper-cleanup
 ##################################################################################################################################
 
-SNAPPER_PACKAGES="snapper snap-pac grub-btrfs inotify-tools snapper-openrc"
+SNAPPER_PACKAGES="snapper snap-pac grub-btrfs inotify-tools"
+
+tput setaf 3
+echo "Syncing package databases..."
+tput sgr0
+sudo pacman --config "$NOHOOK_CONF" -Sy
 
 tput setaf 3
 echo "Installing snapper packages..."
@@ -106,6 +111,22 @@ if ! sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed $SNAPPER_PACKAG
     echo "Check your internet connection and pacman configuration."
     tput sgr0
     exit 1
+fi
+
+# snapper-openrc provides OpenRC init scripts for snapper-timeline and snapper-cleanup.
+# Try pacman first (Artix world repo), fall back to yay (Chaotic AUR / AUR).
+# Non-fatal: snapper still works for manual snapshots and snap-pac hooks without it.
+if ! pacman -Q snapper-openrc &>/dev/null; then
+    tput setaf 3
+    echo "Installing snapper-openrc (OpenRC timeline/cleanup services)..."
+    tput sgr0
+    if ! pkg_install snapper-openrc; then
+        tput setaf 3
+        echo "WARNING: snapper-openrc not found — automatic timeline snapshots won't run."
+        echo "         Install manually if needed: yay -S snapper-openrc"
+        tput sgr0
+        WARNINGS+=("snapper-openrc: not found in repos — automatic timeline snapshots disabled")
+    fi
 fi
 
 ##################################################################################################################################
