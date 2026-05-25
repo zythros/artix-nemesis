@@ -84,6 +84,10 @@ EOF
     tput sgr0
 fi
 
+# Refresh NOHOOK_CONF so it includes [chaotic-aur] — it was snapshotted before
+# the section was added above, so pacman wouldn't find yay without this.
+sudo sh -c "grep -v '^\s*HookDir' /etc/pacman.conf | sed '/^\[options\]/a HookDir = $NOHOOK_DIR' > '$NOHOOK_CONF'"
+
 ##################################################################################################################################
 # 4. Sync package databases
 ##################################################################################################################################
