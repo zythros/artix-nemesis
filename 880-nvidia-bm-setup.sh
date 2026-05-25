@@ -113,17 +113,16 @@ if ! pacman -Q linux-headers &>/dev/null; then
     sudo pacman --config "$NOHOOK_CONF" -S --noconfirm linux-headers
 fi
 
-# Verify DKMS built modules for the running kernel; attempt rebuild if missing
+# Verify DKMS built modules for the running kernel; attempt rebuild if missing.
+# Use "dkms status" rather than filesystem globs — Arch DKMS installs to
+# updates/dkms/ (not extra/ or extramodules/), so path checks produce false negatives.
 KVER=$(uname -r)
-if ! ls /usr/lib/modules/"$KVER"/extra/nvidia*.ko* 2>/dev/null | grep -q nvidia && \
-   ! ls /usr/lib/modules/"$KVER"/extramodules/nvidia*.ko* 2>/dev/null | grep -q nvidia; then
+if ! sudo dkms status 2>/dev/null | grep -q "nvidia.*${KVER}.*installed"; then
     tput setaf 3
     echo "nvidia DKMS modules not found for kernel $KVER — attempting dkms autoinstall..."
     tput sgr0
     sudo dkms autoinstall
-    # Re-check after rebuild attempt
-    if ! ls /usr/lib/modules/"$KVER"/extra/nvidia*.ko* 2>/dev/null | grep -q nvidia && \
-       ! ls /usr/lib/modules/"$KVER"/extramodules/nvidia*.ko* 2>/dev/null | grep -q nvidia; then
+    if ! sudo dkms status 2>/dev/null | grep -q "nvidia.*${KVER}.*installed"; then
         tput setaf 1
         echo "ERROR: nvidia DKMS modules still not found for kernel $KVER after autoinstall."
         echo "       Run: sudo dkms status"

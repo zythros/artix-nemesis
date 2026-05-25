@@ -242,8 +242,8 @@ if pacman -Q snapper-openrc &>/dev/null; then
         WARNINGS+=("snapper-cleanup: Failed to enable (old snapshots won't be cleaned automatically)")
     fi
 else
-    WARNINGS+=("snapper-timeline: Failed to enable (hourly snapshots won't run automatically)")
-    WARNINGS+=("snapper-cleanup: Failed to enable (old snapshots won't be cleaned automatically)")
+    WARNINGS+=("snapper-timeline: snapper-openrc not installed — automatic timeline snapshots disabled")
+    WARNINGS+=("snapper-cleanup: snapper-openrc not installed — automatic snapshot cleanup disabled")
 fi
 
 ##################################################################################################################################
@@ -271,7 +271,7 @@ else
     tput setaf 3
     echo "WARNING: grub-btrfsd OpenRC service not found — grub-btrfs may not include it on Artix"
     tput sgr0
-    WARNINGS+=("grub-btrfsd: Failed to enable (snapshots won't auto-update in GRUB menu)")
+    WARNINGS+=("grub-btrfsd: init script not found — snapshots won't auto-update in GRUB menu")
 fi
 
 ##################################################################################################################################
