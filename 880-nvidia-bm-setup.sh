@@ -104,6 +104,15 @@ else
     echo "NVIDIA packages already installed."
 fi
 
+# Ensure linux-headers for the running kernel are present — DKMS needs them to build modules.
+# On Artix/Arch the headers package is simply 'linux-headers' and matches the running 'linux' kernel.
+if ! pacman -Q linux-headers &>/dev/null; then
+    tput setaf 3
+    echo "linux-headers not installed — installing (required for DKMS build)..."
+    tput sgr0
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm linux-headers
+fi
+
 # Verify DKMS built modules for the running kernel; attempt rebuild if missing
 KVER=$(uname -r)
 if ! ls /usr/lib/modules/"$KVER"/extra/nvidia*.ko* 2>/dev/null | grep -q nvidia && \
