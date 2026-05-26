@@ -171,16 +171,18 @@ fi
 echo
 echo "Patching dwm config.h ..."
 
-python3 - "$DWM_SRC/config.h" <<'PYPATCH'
+# Use the absolute path so dwm's execvp finds the wrapper regardless of
+# what PATH LightDM passes to the X session (fish PATH is not inherited).
+python3 - "$DWM_SRC/config.h" "$WRAPPER" <<'PYPATCH'
 import sys, re
-path = sys.argv[1]
+path, wrapper = sys.argv[1], sys.argv[2]
 text = open(path).read()
 
-if '"dmenu-desktop"' in text:
+if wrapper in text:
     print("dmenucmd already patched — skipping.")
     sys.exit(0)
 
-new_line = 'static const char *dmenucmd[] = { "dmenu-desktop", NULL };'
+new_line = f'static const char *dmenucmd[] = {{ "{wrapper}", NULL }};'
 new_text = re.sub(r'static const char \*dmenucmd\[\][^;]*;', new_line, text, count=1)
 
 if new_text == text:
@@ -188,7 +190,7 @@ if new_text == text:
     sys.exit(1)
 
 open(path, 'w').write(new_text)
-print("dmenucmd patched.")
+print(f"dmenucmd patched → {wrapper}")
 PYPATCH
 
 if [ $? -ne 0 ]; then

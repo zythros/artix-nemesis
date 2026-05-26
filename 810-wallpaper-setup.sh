@@ -178,7 +178,34 @@ tput sgr0
 XPROFILE="$HOME/.xprofile"
 WALLPAPER_LINE='~/.local/bin/wallpaper.sh restore &'
 
+# Ensure ~/.local/bin is in PATH for the X session. LightDM sources ~/.xprofile
+# unconditionally regardless of login shell, so this covers fish, bash, sh, etc.
+# Without this, dwm cannot find binaries like dmenu-desktop or wallpaper.sh via
+# execvp when the login shell is anything other than fish (fish exports its PATH
+# via a special fish --login hook in LightDM's Xsession script).
+PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
+
 echo
+if grep -qF 'export PATH="$HOME/.local/bin' "$XPROFILE" 2>/dev/null; then
+    tput setaf 2
+    echo "~/.xprofile already exports ~/.local/bin PATH — skipping."
+    tput sgr0
+else
+    echo "Adding PATH export to $XPROFILE ..."
+    # Prepend so PATH is set before wallpaper.sh is called
+    if [ -f "$XPROFILE" ]; then
+        tmp=$(mktemp)
+        echo "$PATH_LINE" > "$tmp"
+        cat "$XPROFILE" >> "$tmp"
+        mv "$tmp" "$XPROFILE"
+    else
+        echo "$PATH_LINE" > "$XPROFILE"
+    fi
+    tput setaf 2
+    echo "~/.xprofile PATH updated."
+    tput sgr0
+fi
+
 if grep -qF "wallpaper.sh restore" "$XPROFILE" 2>/dev/null; then
     tput setaf 2
     echo "~/.xprofile already contains wallpaper.sh restore — skipping."
@@ -188,20 +215,6 @@ else
     echo "$WALLPAPER_LINE" >> "$XPROFILE"
     tput setaf 2
     echo "~/.xprofile updated."
-    tput sgr0
-fi
-
-##################################################################################################################################
-# 5. Check PATH
-##################################################################################################################################
-
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    tput setaf 3
-    echo
-    echo "NOTE: ~/.local/bin is not in your PATH"
-    echo "Add to your shell config:"
-    echo "  # Fish:      set -gx PATH \$HOME/.local/bin \$PATH"
-    echo "  # Bash/Zsh:  export PATH=\"\$HOME/.local/bin:\$PATH\""
     tput sgr0
 fi
 
@@ -221,6 +234,7 @@ echo "Wallpaper system installed:"
 echo "  Script:     ~/.local/bin/wallpaper.sh"
 echo "  Wallpapers: $WALLPAPER_DIR ($WALLPAPER_COUNT images)"
 echo "  Autostart:  ~/.xprofile (wallpaper.sh restore, runs on LightDM login)"
+echo "  PATH:       ~/.xprofile exports ~/.local/bin (works for any login shell)"
 echo
 if [ "$WALLPAPER_COUNT" -eq 0 ]; then
     tput setaf 3

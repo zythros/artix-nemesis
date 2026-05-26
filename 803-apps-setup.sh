@@ -16,6 +16,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 # ── Apps to install ───────────────────────────────────────────────────────────
 # Comment out any line to skip that app.
 APPS=(
+    fish                 # login shell (chsh + fish_add_path ~/.local/bin auto-configured)
     gparted              # partition editor (alacritty+sudo wrapper auto-configured)
     mullvad-browser-bin  # privacy browser
     gimp                 # image editor
@@ -90,6 +91,32 @@ post_install() {
                     pkg_install "$codec" && echo "    $codec installed." || echo "    WARNING: $codec failed." >&2
                 fi
             done
+            ;;
+        fish)
+            # Set fish as the login shell
+            if [ "$(getent passwd "$USER" | cut -d: -f7)" != "/usr/bin/fish" ]; then
+                tput setaf 6
+                echo "  → setting fish as login shell (chsh) ..."
+                tput sgr0
+                chsh -s /usr/bin/fish
+            else
+                echo "  → fish already the login shell — skipping chsh."
+            fi
+            # Ensure ~/.local/bin is in fish PATH
+            FISH_CONF="$HOME/.config/fish/config.fish"
+            mkdir -p "$(dirname "$FISH_CONF")"
+            if grep -qF "fish_add_path ~/.local/bin" "$FISH_CONF" 2>/dev/null; then
+                echo "  → fish_add_path already in config.fish — skipping."
+            else
+                tput setaf 6
+                echo "  → adding fish_add_path ~/.local/bin to $FISH_CONF ..."
+                tput sgr0
+                cat >> "$FISH_CONF" <<'FISHCONF'
+if status is-interactive
+    fish_add_path ~/.local/bin
+end
+FISHCONF
+            fi
             ;;
         gparted)
             # polkit service not available on Artix — run via alacritty+sudo instead
