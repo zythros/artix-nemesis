@@ -27,6 +27,7 @@ APPS=(
     krename              # batch file renamer
     flameshot            # screenshot tool with annotation
     freecad              # parametric 3D CAD modeler
+    cifs-utils           # SMB/CIFS share mounting (fstab + manual)
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
