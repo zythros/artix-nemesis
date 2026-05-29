@@ -108,8 +108,8 @@ tput sgr0
 ##################################################################################################################################
 
 echo
-echo "Patching config.h (removing volume component) ..."
-sed -i '/pamixer/d' "$SLSTATUS_SRC/config.h"
+echo "Patching config.h (removing volume, cpu, ram components) ..."
+sed -i '/pamixer/d; /cpu_perc/d; /ram_perc/d' "$SLSTATUS_SRC/config.h"
 tput setaf 2
 echo "config.h patched."
 tput sgr0
@@ -193,8 +193,6 @@ echo "  Source:  $SLSTATUS_SRC"
 echo "  Binary:  $(which slstatus)"
 echo
 echo "Status bar components:"
-echo "  CPU      — cpu_perc  (cyan   #06b6d4)"
-echo "  RAM      — ram_perc  (purple #a855f7)"
 echo "  Datetime — datetime  (lime   #84cc16)"
 echo "  Update interval: 1000ms"
 echo
