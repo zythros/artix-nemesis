@@ -176,6 +176,75 @@ for app in "${APPS[@]}"; do
 done
 
 ##################################################################################################################################
+# Deploy alacritty config
+##################################################################################################################################
+
+ALACRITTY_CONF="$HOME/.config/alacritty/alacritty.toml"
+if grep -qF '#0a0a0a' "$ALACRITTY_CONF" 2>/dev/null; then
+    echo "alacritty config already in place — skipping."
+else
+    mkdir -p "$(dirname "$ALACRITTY_CONF")"
+    tput setaf 6
+    echo "Writing alacritty config ..."
+    tput sgr0
+    cat > "$ALACRITTY_CONF" <<'ALACRITTYCONF'
+[font]
+size = 14.0
+
+[font.normal]
+family = "monospace"
+style = "Regular"
+
+[font.bold]
+family = "monospace"
+style = "Bold"
+
+[font.italic]
+family = "monospace"
+style = "Italic"
+
+[window]
+padding.x = 8
+padding.y = 8
+decorations = "full"
+
+[scrolling]
+history = 10000
+
+[cursor]
+style.shape = "Block"
+unfocused_hollow = true
+
+[colors.primary]
+background = "#0a0a0a"
+foreground = "#d0d2d0"
+
+[colors.normal]
+black   = "#1a1a1a"
+red     = "#e06c6c"
+green   = "#39d353"
+yellow  = "#f5c050"
+blue    = "#3b9eff"
+magenta = "#c87ed8"
+cyan    = "#5ec4bd"
+white   = "#d0d2d0"
+
+[colors.bright]
+black   = "#888888"
+red     = "#ff7878"
+green   = "#57ff6e"
+yellow  = "#ffd855"
+blue    = "#5bc8ff"
+magenta = "#dc9af5"
+cyan    = "#7ee8dd"
+white   = "#ffffff"
+ALACRITTYCONF
+    tput setaf 2
+    echo "  → wrote $ALACRITTY_CONF"
+    tput sgr0
+fi
+
+##################################################################################################################################
 # Run desktop/icon hooks manually now that all installs are complete
 ##################################################################################################################################
 
