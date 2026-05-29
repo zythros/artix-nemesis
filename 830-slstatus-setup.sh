@@ -193,7 +193,7 @@ echo "  Source:  $SLSTATUS_SRC"
 echo "  Binary:  $(which slstatus)"
 echo
 echo "Status bar components:"
-echo "  Datetime — datetime  (bg #005577 blue, fg #111111 black)"
+echo "  Datetime — datetime  (bg #222222 black, fg #eeeeee white)"
 echo "  Update interval: 1000ms"
 echo
 echo "Autostart: ~/.xprofile → slstatus & (takes effect at next login)"
