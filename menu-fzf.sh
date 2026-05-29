@@ -24,6 +24,7 @@ ENTRIES=(
     "803-apps-setup.sh"         "Install preferred apps"
     "810-wallpaper-setup.sh"    "Set up wallpaper cycling system"
     "820-dmenu-setup.sh"        "Build dmenu; wire j4-dmenu-desktop into dwm"
+    "830-slstatus-setup.sh"     "Build slstatus; write CPU/RAM/datetime to DWM bar"
     "835-spacemouse-setup.sh"   "Build spacenavd; configure SpaceNavigator for FreeCAD"
     "836-printer-setup.sh"      "Install CUPS + Epson ET-3950 driver; add printer at 10.0.100.103"
     "840-snapper-setup.sh"      "Configure Snapper for BTRFS snapshots"
