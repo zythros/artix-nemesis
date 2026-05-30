@@ -11,7 +11,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-RGB_COLOR="fbba2b"
+RGB_COLOR="ffb000"
 
 if [ "$DEBUG" = true ]; then
     echo
@@ -73,8 +73,15 @@ sudo tee /etc/local.d/rgb.start > /dev/null <<EOF
 #!/bin/sh
 # i2c-dev is required for OpenRGB to reach RAM RGB controllers over SMBus
 modprobe i2c-dev
-# Allow USB devices (keyboard) time to enumerate before OpenRGB scans
-sleep 3
+# Allow USB devices (keyboard, fan hub) time to enumerate before OpenRGB scans
+sleep 5
+# Resize ASUS Aura Addressable zones on device 2 (motherboard) to 100 LEDs each.
+# Zones 1-3 map to Aura Addressable 1-3 headers; fans and PSU light strip are
+# connected via the Fractal case ARGB hub. LED count intentionally overshoots --
+# single static color makes the exact count irrelevant.
+openrgb --device 2 --zone 1 --size 100
+openrgb --device 2 --zone 2 --size 100
+openrgb --device 2 --zone 3 --size 100
 openrgb --mode static --color ${RGB_COLOR}
 EOF
 
