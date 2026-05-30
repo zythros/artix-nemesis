@@ -56,8 +56,9 @@ pkg_install openrgb && { tput setaf 2; echo "  openrgb installed."; tput sgr0; }
 }
 
 # Reload udev rules so the openrgb USB rules (60-openrgb.rules) take effect immediately
+# udevadm trigger can hang on eudev/Artix waiting for uevent processing — cap it
 sudo udevadm control --reload-rules
-sudo udevadm trigger
+sudo timeout 10 udevadm trigger 2>/dev/null || true
 
 ##################################################################################################################################
 # Step 2: Write /etc/local.d/rgb.start
@@ -91,7 +92,7 @@ tput sgr0
 
 sudo modprobe i2c-dev 2>/dev/null || true
 
-if openrgb --mode static --color "$RGB_COLOR"; then
+if sudo openrgb --mode static --color "$RGB_COLOR"; then
     tput setaf 2; echo "  RGB set to #${RGB_COLOR}."; tput sgr0
 else
     tput setaf 3
