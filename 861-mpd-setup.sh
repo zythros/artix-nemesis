@@ -65,6 +65,13 @@ for pkg in mpd mpd-openrc; do
     fi
 done
 
+# nohook install skips sysusers.d (user creation) and tmpfiles.d (dir creation).
+# Process them now so the mpd user and /var/lib/mpd exist before we symlink.
+if ! id mpd &>/dev/null; then
+    sudo systemd-sysusers /usr/lib/sysusers.d/mpd.conf
+fi
+sudo systemd-tmpfiles --create /usr/lib/tmpfiles.d/mpd.conf
+
 ##################################################################################################################################
 # 2. rmpc TUI client
 ##################################################################################################################################
@@ -87,36 +94,20 @@ else
 fi
 
 ##################################################################################################################################
-# 3. Music directory
+# 3. mpd.conf — add commented music_directory example if not already present
 ##################################################################################################################################
 
 echo
 tput setaf 3
-echo "── Music directory ───────────────────────────────────────────"
+echo "── mpd.conf ──────────────────────────────────────────────────"
 tput sgr0
 
-MUSIC_DIR="$HOME/Music"
-if [ -d "$MUSIC_DIR" ]; then
-    echo "Music directory $MUSIC_DIR already exists — skipping."
+MPD_CONF="/etc/mpd.conf"
+if grep -q "music_directory" "$MPD_CONF" 2>/dev/null; then
+    echo "music_directory already present in $MPD_CONF — skipping."
 else
-    mkdir -p "$MUSIC_DIR"
-    tput setaf 2; echo "Created $MUSIC_DIR."; tput sgr0
-fi
-
-# MPD system service uses /var/lib/mpd/music by default.
-# Symlink ~/Music into it so the system daemon sees the user's library.
-MPD_MUSIC_DIR="/var/lib/mpd/music"
-if [ -L "$MPD_MUSIC_DIR" ] && [ "$(readlink "$MPD_MUSIC_DIR")" = "$MUSIC_DIR" ]; then
-    echo "$MPD_MUSIC_DIR → $MUSIC_DIR already linked — skipping."
-elif [ -d "$MPD_MUSIC_DIR" ] && [ -z "$(ls -A "$MPD_MUSIC_DIR")" ]; then
-    sudo rmdir "$MPD_MUSIC_DIR"
-    sudo ln -s "$MUSIC_DIR" "$MPD_MUSIC_DIR"
-    tput setaf 2; echo "Linked $MPD_MUSIC_DIR → $MUSIC_DIR."; tput sgr0
-elif [ ! -e "$MPD_MUSIC_DIR" ]; then
-    sudo ln -s "$MUSIC_DIR" "$MPD_MUSIC_DIR"
-    tput setaf 2; echo "Linked $MPD_MUSIC_DIR → $MUSIC_DIR."; tput sgr0
-else
-    tput setaf 3; echo "WARNING: $MPD_MUSIC_DIR already exists and is non-empty — not replacing."; tput sgr0
+    sudo sh -c "echo '' >> '$MPD_CONF' && echo '# Set this to your music library path, e.g.:' >> '$MPD_CONF' && echo '#music_directory \"/home/user/Music\"' >> '$MPD_CONF'"
+    tput setaf 2; echo "Added music_directory example to $MPD_CONF."; tput sgr0
 fi
 
 ##################################################################################################################################
@@ -149,8 +140,7 @@ echo "##############################################################"
 echo "###################  $(basename $0) done"
 echo "##############################################################"
 echo
-echo "MPD config: /etc/mpd.conf"
-echo "Music dir:  $MUSIC_DIR"
+echo "MPD config: /etc/mpd.conf  ← set music_directory here"
 echo "Connect:    rmpc  (default: localhost:6600)"
 echo
 tput sgr0
