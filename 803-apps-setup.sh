@@ -28,6 +28,7 @@ APPS=(
     flameshot            # screenshot tool with annotation
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
+    sublime-text-4       # text editor (chaotic-aur)
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
