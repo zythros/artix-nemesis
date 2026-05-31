@@ -29,6 +29,8 @@ APPS=(
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
     sublime-text-4       # text editor (chaotic-aur)
+    python-yaml          # dep: blood-pressure-tracker
+    python-matplotlib    # dep: blood-pressure-tracker
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -242,6 +244,27 @@ white   = "#ffffff"
 ALACRITTYCONF
     tput setaf 2
     echo "  → wrote $ALACRITTY_CONF"
+    tput sgr0
+fi
+
+##################################################################################################################################
+# Install blood-pressure-tracker (Python CLI from GitHub source)
+##################################################################################################################################
+
+BP_WRAPPER="$HOME/.local/bin/bp-tracker"
+if [ -f "$BP_WRAPPER" ]; then
+    echo "bp-tracker already installed — skipping."
+else
+    tput setaf 6
+    echo "Installing blood-pressure-tracker ..."
+    tput sgr0
+    BP_SRC="$HOME/.local/src/bp-tracker"
+    rm -rf "$BP_SRC"
+    git clone https://github.com/zythros/blood-pressure-tracker "$BP_SRC"
+    export PATH="$HOME/.local/bin:$PATH"
+    bash "$BP_SRC/install.sh"
+    tput setaf 2
+    echo "  → bp-tracker installed."
     tput sgr0
 fi
 
