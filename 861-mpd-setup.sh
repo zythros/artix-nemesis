@@ -4,7 +4,8 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Purpose   : Install MPD (Music Player Daemon) + rmpc TUI client; configure
-#             MPD as a system service (OpenRC).
+#             MPD as a system service (OpenRC) running as the desktop user so
+#             it can reach the PipeWire/PulseAudio socket.
 ##################################################################################################################################
 #
 #   DO NOT JUST RUN THIS. EXAMINE AND JUDGE. RUN AT YOUR OWN RISK.
@@ -66,7 +67,7 @@ for pkg in mpd mpd-openrc; do
 done
 
 # nohook install skips sysusers.d (user creation) and tmpfiles.d (dir creation).
-# Process them now so the mpd user and /var/lib/mpd exist before we symlink.
+# Process them now so the mpd user and /var/lib/mpd exist before we configure.
 if ! id mpd &>/dev/null; then
     sudo systemd-sysusers /usr/lib/sysusers.d/mpd.conf
 fi
@@ -94,7 +95,7 @@ else
 fi
 
 ##################################################################################################################################
-# 3. mpd.conf — add commented music_directory example if not already present
+# 3. /etc/mpd.conf — write a complete, ready-to-use config
 ##################################################################################################################################
 
 echo
@@ -102,16 +103,102 @@ tput setaf 3
 echo "── mpd.conf ──────────────────────────────────────────────────"
 tput sgr0
 
-MPD_CONF="/etc/mpd.conf"
-if grep -q "music_directory" "$MPD_CONF" 2>/dev/null; then
-    echo "music_directory already present in $MPD_CONF — skipping."
+sudo tee /etc/mpd.conf > /dev/null << 'EOF'
+# MPD configuration — managed by 861-mpd-setup.sh
+# Full reference: https://mpd.readthedocs.io/en/stable/user.html#configuration
+
+# Set this to your music library path before (re)starting MPD:
+#music_directory "/home/zythros/Music"
+
+playlist_directory  "/var/lib/mpd/playlists"
+db_file             "/var/lib/mpd/tag_cache"
+state_file          "/var/lib/mpd/state"
+sticker_file        "/var/lib/mpd/sticker.sql"
+
+log_file            "syslog"
+log_level           "notice"
+
+# Run as the desktop user so MPD can reach the PipeWire/PulseAudio socket
+# at /run/user/1000/pulse/native (socket is only accessible to UID 1000).
+user                "zythros"
+port                "6600"
+
+# Automatically update the database when music files change (Linux inotify).
+auto_update         "yes"
+
+input {
+    plugin "curl"
+}
+
+audio_output {
+    type   "pulse"
+    name   "PipeWire"
+    server "unix:/run/user/1000/pulse/native"
+}
+EOF
+
+tput setaf 2; echo "Wrote /etc/mpd.conf."; tput sgr0
+
+##################################################################################################################################
+# 4. OpenRC init — run MPD as zythros, not the mpd system user
+##################################################################################################################################
+
+echo
+tput setaf 3
+echo "── OpenRC command_user ───────────────────────────────────────"
+tput sgr0
+
+MPD_INIT="/etc/init.d/mpd"
+if grep -q 'command_user="zythros' "$MPD_INIT" 2>/dev/null; then
+    echo "command_user already set to zythros — skipping."
 else
-    sudo sh -c "echo '' >> '$MPD_CONF' && echo '# Set this to your music library path, e.g.:' >> '$MPD_CONF' && echo '#music_directory \"/home/user/Music\"' >> '$MPD_CONF'"
-    tput setaf 2; echo "Added music_directory example to $MPD_CONF."; tput sgr0
+    sudo sed -i 's/command_user="mpd[^"]*"/command_user="zythros:audio"/' "$MPD_INIT"
+    if grep -q 'command_user="zythros' "$MPD_INIT"; then
+        tput setaf 2; echo "command_user set to zythros:audio in $MPD_INIT."; tput sgr0
+    else
+        tput setaf 1; echo "WARNING: could not patch command_user in $MPD_INIT — check manually." >&2; tput sgr0
+    fi
 fi
 
 ##################################################################################################################################
-# 4. Enable and start MPD (OpenRC)
+# 5. Permissions — /var/lib/mpd and home directory
+##################################################################################################################################
+
+echo
+tput setaf 3
+echo "── Permissions ───────────────────────────────────────────────"
+tput sgr0
+
+sudo mkdir -p /var/lib/mpd/playlists
+sudo chown -R zythros:audio /var/lib/mpd
+tput setaf 2; echo "chown zythros:audio /var/lib/mpd (recursive)."; tput sgr0
+
+# MPD running as zythros must traverse /home/zythros to reach the music library.
+# 711 allows execute (directory traverse) without exposing file listings.
+sudo chmod 711 /home/zythros
+tput setaf 2; echo "chmod 711 /home/zythros."; tput sgr0
+
+##################################################################################################################################
+# 6. rmpc — bootstrap default config
+##################################################################################################################################
+
+echo
+tput setaf 3
+echo "── rmpc config ───────────────────────────────────────────────"
+tput sgr0
+
+RMPC_CONF="$HOME/.config/rmpc/config.ron"
+if [ -f "$RMPC_CONF" ]; then
+    echo "rmpc config already exists — skipping."
+else
+    mkdir -p "$(dirname "$RMPC_CONF")"
+    rmpc config > "$RMPC_CONF" 2>/dev/null && \
+        { tput setaf 2; echo "Bootstrapped $RMPC_CONF."; tput sgr0; } || \
+        { tput setaf 1; echo "WARNING: rmpc config bootstrap failed — run 'rmpc config > $RMPC_CONF' manually." >&2; tput sgr0; }
+fi
+
+##################################################################################################################################
+# 7. Enable and start MPD (OpenRC)
 ##################################################################################################################################
 
 echo
@@ -126,10 +213,12 @@ else
 fi
 
 echo "Starting mpd ..."
-if sudo rc-service mpd start 2>/dev/null; then
+# Use restart so OpenRC correctly handles the case where it thinks mpd is already
+# running (e.g. after a command_user change) but the process is actually dead.
+if sudo rc-service mpd restart 2>/dev/null; then
     tput setaf 2; echo "mpd started."; tput sgr0
 else
-    echo "mpd already running (or start failed — check rc-service mpd status)."
+    echo "mpd start failed — check: sudo rc-service mpd status"
 fi
 
 ##################################################################################################################################
@@ -140,7 +229,9 @@ echo "##############################################################"
 echo "###################  $(basename $0) done"
 echo "##############################################################"
 echo
-echo "MPD config: /etc/mpd.conf  ← set music_directory here"
-echo "Connect:    rmpc  (default: localhost:6600)"
+echo "MPD config:    /etc/mpd.conf  ← uncomment and set music_directory"
+echo "MPD data:      /var/lib/mpd/"
+echo "Connect:       rmpc  (localhost:6600)"
+echo "rmpc config:   $HOME/.config/rmpc/config.ron"
 echo
 tput sgr0
