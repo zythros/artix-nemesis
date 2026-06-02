@@ -107,8 +107,8 @@ sudo tee /etc/mpd.conf > /dev/null << 'EOF'
 # MPD configuration — managed by 861-mpd-setup.sh
 # Full reference: https://mpd.readthedocs.io/en/stable/user.html#configuration
 
-# Set this to your music library path before (re)starting MPD:
-#music_directory "/home/zythros/Music"
+# Set this to your music library path, then restart MPD:
+#music_directory "/path/to/music"
 
 playlist_directory  "/var/lib/mpd/playlists"
 db_file             "/var/lib/mpd/tag_cache"
@@ -118,6 +118,10 @@ sticker_file        "/var/lib/mpd/sticker.sql"
 log_file            "syslog"
 log_level           "notice"
 
+# TCP for remote clients; Unix socket for local clients (required for
+# rmpc add / and other commands that use the MPD config command).
+bind_to_address     "any"
+bind_to_address     "/run/mpd/socket"
 port                "6600"
 
 # Automatically update the database when music files change (Linux inotify).
