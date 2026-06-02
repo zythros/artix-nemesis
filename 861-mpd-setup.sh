@@ -118,9 +118,6 @@ sticker_file        "/var/lib/mpd/sticker.sql"
 log_file            "syslog"
 log_level           "notice"
 
-# Run as the desktop user so MPD can reach the PipeWire/PulseAudio socket
-# at /run/user/1000/pulse/native (socket is only accessible to UID 1000).
-user                "zythros"
 port                "6600"
 
 # Automatically update the database when music files change (Linux inotify).
