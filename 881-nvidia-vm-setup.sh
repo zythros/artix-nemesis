@@ -89,14 +89,31 @@ else
     echo "NVIDIA packages already installed."
 fi
 
-# Verify DKMS built modules for the running kernel
-KVER=$(uname -r)
-if ! ls /usr/lib/modules/"$KVER"/extramodules/nvidia*.ko* 2>/dev/null | grep -q nvidia; then
-    tput setaf 1
-    echo "ERROR: nvidia DKMS modules not found for kernel $KVER — DKMS build may have failed."
-    echo "       Run: sudo dkms status"
+# Ensure linux-headers for the running kernel are present — DKMS needs them to build modules.
+# On Artix/Arch the headers package is simply 'linux-headers' and matches the running 'linux' kernel.
+if ! pacman -Q linux-headers &>/dev/null; then
+    tput setaf 3
+    echo "linux-headers not installed — installing (required for DKMS build)..."
     tput sgr0
-    exit 1
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm linux-headers
+fi
+
+# Verify DKMS built modules for the running kernel; attempt rebuild if missing.
+# Use "dkms status" rather than filesystem globs — Arch DKMS installs to
+# updates/dkms/ (not extra/ or extramodules/), so path checks produce false negatives.
+KVER=$(uname -r)
+if ! sudo dkms status 2>/dev/null | grep -q "nvidia.*${KVER}.*installed"; then
+    tput setaf 3
+    echo "nvidia DKMS modules not found for kernel $KVER — attempting dkms autoinstall..."
+    tput sgr0
+    sudo dkms autoinstall
+    if ! sudo dkms status 2>/dev/null | grep -q "nvidia.*${KVER}.*installed"; then
+        tput setaf 1
+        echo "ERROR: nvidia DKMS modules still not found for kernel $KVER after autoinstall."
+        echo "       Run: sudo dkms status"
+        tput sgr0
+        exit 1
+    fi
 fi
 tput setaf 2
 echo "nvidia DKMS modules verified for kernel $KVER."
