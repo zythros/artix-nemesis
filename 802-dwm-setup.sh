@@ -103,30 +103,45 @@ echo "dwm installed."
 tput sgr0
 
 ##################################################################################################################################
-# 5. Create LightDM xsessions entry (idempotent)
+# 5. Ensure dbus is installed — dwm doesn't start a session bus itself, and
+#    apps like flameshot silently fail (or don't appear at all via rofi/dmenu)
+#    without one. See: dbus-launch wraps the session below.
+##################################################################################################################################
+
+if ! command -v dbus-launch &>/dev/null; then
+    echo
+    echo "Installing dbus (provides dbus-launch) ..."
+    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed dbus
+    tput setaf 2
+    echo "dbus installed."
+    tput sgr0
+fi
+
+##################################################################################################################################
+# 6. Create LightDM xsessions entry (idempotent — rewritten if dbus-launch missing)
 ##################################################################################################################################
 
 echo
 SESSION_FILE="/usr/share/xsessions/dwm.desktop"
 
-if [ -f "$SESSION_FILE" ]; then
-    echo "$SESSION_FILE already exists — skipping."
+if [ -f "$SESSION_FILE" ] && grep -qF 'dbus-launch' "$SESSION_FILE"; then
+    echo "$SESSION_FILE already exists and wraps dbus-launch — skipping."
 else
     echo "Writing $SESSION_FILE ..."
     sudo tee "$SESSION_FILE" > /dev/null <<'EOF'
 [Desktop Entry]
 Name=dwm
 Comment=Dynamic Window Manager
-Exec=dwm
+Exec=dbus-launch --exit-with-session dwm
 Type=Application
 EOF
     tput setaf 2
-    echo "Session entry created."
+    echo "Session entry created (dwm now runs under a D-Bus session — fixes flameshot and other D-Bus-dependent apps)."
     tput sgr0
 fi
 
 ##################################################################################################################################
-# 6. Write ~/.dwm/keybindings.txt
+# 7. Write ~/.dwm/keybindings.txt
 ##################################################################################################################################
 
 echo
