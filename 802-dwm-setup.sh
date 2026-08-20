@@ -141,7 +141,8 @@ dwm keybindings  (Mod = Super / Windows key)
 Launching
   Mod + Return          alacritty (terminal)
   Mod + Shift + Return  thunar (file manager)
-  Mod + d               dmenu (run launcher)
+  Mod + d               rofi (run launcher)
+  Mod + Shift + d       dmenu (run launcher)
   Mod + p               dmenu (run launcher)
   Mod + m               mullvad-browser
   Mod + s               flameshot (screenshot)
