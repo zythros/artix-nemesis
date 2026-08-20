@@ -19,7 +19,6 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 # Comment out any line to skip that app.
 APPS=(
     fish                 # login shell (chsh + fish_add_path ~/.local/bin auto-configured)
-    ttf-jetbrains-mono-nerd  # sets JetBrainsMono Nerd Font as default "monospace" (fontconfig)
     gparted              # partition editor (alacritty+sudo wrapper auto-configured)
     mullvad-browser-bin  # privacy browser
     gimp                 # image editor
@@ -81,41 +80,6 @@ sudo pacman --config "$NOHOOK_CONF" -Sy
 post_install() {
     local pkg="$1"
     case "$pkg" in
-        ttf-jetbrains-mono-nerd)
-            # Set as the default "monospace" font (per-user, via fontconfig) so
-            # dwm's bar, alacritty, dmenu, and rofi all pick it up automatically —
-            # they already just reference the generic "monospace" family.
-            FONTCONFIG_CONF="$HOME/.config/fontconfig/fonts.conf"
-            mkdir -p "$(dirname "$FONTCONFIG_CONF")"
-            if grep -qF 'JetBrainsMono Nerd Font' "$FONTCONFIG_CONF" 2>/dev/null; then
-                echo "  → fontconfig already prefers JetBrainsMono Nerd Font — skipping."
-            elif [ -f "$FONTCONFIG_CONF" ]; then
-                tput setaf 3
-                echo "  → WARNING: $FONTCONFIG_CONF already exists with other content — not auto-editing." >&2
-                echo "    Add this <match> block inside <fontconfig>...</fontconfig> manually:"
-                echo '      <match target="pattern"><test name="family"><string>monospace</string></test><edit name="family" mode="prepend" binding="strong"><string>JetBrainsMono Nerd Font</string></edit></match>'
-                tput sgr0
-            else
-                tput setaf 6
-                echo "  → writing $FONTCONFIG_CONF ..."
-                tput sgr0
-                cat > "$FONTCONFIG_CONF" <<'FONTCONF'
-<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
-<fontconfig>
-  <match target="pattern">
-    <test name="family"><string>monospace</string></test>
-    <edit name="family" mode="prepend" binding="strong"><string>JetBrainsMono Nerd Font</string></edit>
-  </match>
-</fontconfig>
-FONTCONF
-                tput setaf 2
-                echo "  → JetBrainsMono Nerd Font set as default monospace."
-                tput sgr0
-            fi
-            # Hooks are skipped (nohook conf) — rebuild the font cache manually
-            fc-cache -f &>/dev/null || true
-            ;;
         vlc)
             # Codec packages not always pulled in as hard deps
             local codecs=(libdvdcss libdvdread libdvdnav libbluray)
