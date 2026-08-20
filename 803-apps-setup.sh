@@ -32,6 +32,8 @@ APPS=(
     rofi                 # app launcher (bound to Mod+d in dwm's config.h)
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
+    podman               # rootless container engine (shared-root-mount OpenRC fixup auto-configured)
+    distrobox            # run other distros' containers as if native (needs podman above)
     # sublime-text-4      # text editor — AUR/chaotic-aur only, disabled by default (run 801 + uncomment to opt in)
     python-yaml          # dep: blood-pressure-tracker
     python-matplotlib    # dep: blood-pressure-tracker
@@ -203,6 +205,52 @@ EOF
                 tput setaf 6
                 echo "  → set useX11LegacyScreenshot=true in $FLAMESHOT_CONF"
                 tput sgr0
+            fi
+            ;;
+        podman)
+            # Rootless podman/distrobox need "/" to have shared mount propagation.
+            # systemd sets this automatically at boot; OpenRC does not, so podman
+            # warns `"/" is not a shared mount` and rootless container mounts can
+            # break. Fix: a small custom OpenRC service that runs
+            # `mount --make-rshared /` at boot — same pattern as
+            # 835-spacemouse-setup.sh's spacenavd service.
+            SHARED_ROOT_SVC="/etc/init.d/shared-root"
+            if [ -f "$SHARED_ROOT_SVC" ]; then
+                echo "  → $SHARED_ROOT_SVC already exists — skipping."
+            else
+                tput setaf 6
+                echo "  → writing $SHARED_ROOT_SVC ..."
+                tput sgr0
+                sudo tee "$SHARED_ROOT_SVC" > /dev/null <<'RCEOF'
+#!/sbin/openrc-run
+
+description="Mark / as a shared mount (required for podman/distrobox rootless mounts)"
+
+depend() {
+    need localmount
+}
+
+start() {
+    ebegin "Marking / as a shared mount"
+    mount --make-rshared /
+    eend $?
+}
+RCEOF
+                sudo chmod 755 "$SHARED_ROOT_SVC"
+                tput setaf 2
+                echo "  → $SHARED_ROOT_SVC written."
+                tput sgr0
+            fi
+
+            sudo rc-update add shared-root default 2>/dev/null || true
+            echo "  → shared-root enabled at default runlevel."
+
+            if sudo rc-service shared-root start 2>/dev/null; then
+                tput setaf 2
+                echo "  → / is now a shared mount."
+                tput sgr0
+            else
+                echo "  → shared-root already applied (or start failed — check: sudo rc-service shared-root status)."
             fi
             ;;
     esac
