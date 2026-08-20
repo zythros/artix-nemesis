@@ -75,7 +75,16 @@ if [ -d "$SLSTATUS_SRC/.git" ]; then
     tput setaf 3
     echo "Updating slstatus source ..."
     tput sgr0
-    git -C "$SLSTATUS_SRC" pull
+    if ! git -C "$SLSTATUS_SRC" pull; then
+        tput setaf 1
+        echo "ERROR: git pull failed in $SLSTATUS_SRC — not building with stale/uncertain source." >&2
+        echo "       Usually local changes to tracked files blocking the merge. Check:" >&2
+        echo "         git -C $SLSTATUS_SRC status" >&2
+        echo "       If it's just local build artifacts (safe to discard), fix with:" >&2
+        echo "         git -C $SLSTATUS_SRC reset --hard origin/master && git -C $SLSTATUS_SRC pull" >&2
+        tput sgr0
+        exit 1
+    fi
 elif [ -d "$SLSTATUS_SRC" ]; then
     tput setaf 3
     echo "Backing up existing $SLSTATUS_SRC and cloning ..."
