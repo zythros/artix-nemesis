@@ -19,6 +19,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 # Comment out any line to skip that app.
 APPS=(
     fish                 # login shell (chsh + fish_add_path ~/.local/bin auto-configured)
+    starship             # cross-shell prompt (fish init + container-aware [container] symbol auto-configured)
     gparted              # partition editor (alacritty+sudo wrapper auto-configured)
     mullvad-browser-bin  # privacy browser
     gimp                 # image editor
@@ -116,6 +117,37 @@ if status is-interactive
     fish_add_path ~/.local/bin
 end
 FISHCONF
+            fi
+            ;;
+        starship)
+            # Init starship in fish (config.fish may not exist yet if fish
+            # hasn't been processed first — mkdir/append still handles that)
+            FISH_CONF="$HOME/.config/fish/config.fish"
+            mkdir -p "$(dirname "$FISH_CONF")"
+            if grep -qF "starship init fish" "$FISH_CONF" 2>/dev/null; then
+                echo "  → starship already initialized in config.fish — skipping."
+            else
+                tput setaf 6
+                echo "  → adding starship init to $FISH_CONF ..."
+                tput sgr0
+                cat >> "$FISH_CONF" <<'FISHCONF'
+starship init fish | source
+FISHCONF
+            fi
+            # Container-aware prompt: shows a 📦 icon + name inside distrobox/podman/toolbox
+            STARSHIP_CONF="$HOME/.config/starship.toml"
+            mkdir -p "$(dirname "$STARSHIP_CONF")"
+            if grep -q '^\[container\]' "$STARSHIP_CONF" 2>/dev/null; then
+                echo "  → starship.toml already has a [container] section — skipping."
+            else
+                tput setaf 6
+                echo "  → adding [container] section to $STARSHIP_CONF ..."
+                tput sgr0
+                cat >> "$STARSHIP_CONF" <<'STARSHIPCONF'
+
+[container]
+symbol = "📦 "
+STARSHIPCONF
             fi
             ;;
         gparted)
