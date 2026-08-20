@@ -139,6 +139,29 @@ EOF
             echo "  → wrote $desktop (alacritty+sudo wrapper)"
             tput sgr0
             ;;
+        flameshot)
+            # On X11 + dwm (no xdg-desktop-portal Screenshot backend), flameshot's
+            # portal-based capture times out after 30s and fails. Force the legacy
+            # X11 capture path instead. See flameshot-org/flameshot#4737.
+            FLAMESHOT_CONF="$HOME/.config/flameshot/flameshot.ini"
+            mkdir -p "$(dirname "$FLAMESHOT_CONF")"
+            if grep -q '^useX11LegacyScreenshot=true' "$FLAMESHOT_CONF" 2>/dev/null; then
+                echo "  → flameshot.ini already has useX11LegacyScreenshot=true — skipping."
+            else
+                if [ ! -f "$FLAMESHOT_CONF" ]; then
+                    printf '[General]\nuseX11LegacyScreenshot=true\n' > "$FLAMESHOT_CONF"
+                elif grep -q '^useX11LegacyScreenshot=' "$FLAMESHOT_CONF"; then
+                    sed -i 's/^useX11LegacyScreenshot=.*/useX11LegacyScreenshot=true/' "$FLAMESHOT_CONF"
+                elif grep -q '^\[General\]' "$FLAMESHOT_CONF"; then
+                    sed -i '/^\[General\]/a useX11LegacyScreenshot=true' "$FLAMESHOT_CONF"
+                else
+                    printf '[General]\nuseX11LegacyScreenshot=true\n' >> "$FLAMESHOT_CONF"
+                fi
+                tput setaf 6
+                echo "  → set useX11LegacyScreenshot=true in $FLAMESHOT_CONF"
+                tput sgr0
+            fi
+            ;;
     esac
 }
 
@@ -155,7 +178,8 @@ for app in "${APPS[@]}"; do
     tput sgr0
 
     if pacman -Q "$app" &>/dev/null; then
-        echo "$app already installed — skipping."
+        echo "$app already installed — skipping install, but re-applying post-install fixups."
+        post_install "$app"
         continue
     fi
 
