@@ -114,7 +114,7 @@ if ! sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed $SNAPPER_PACKAG
 fi
 
 # snapper-openrc provides OpenRC init scripts for snapper-timeline and snapper-cleanup.
-# Try pacman first (Artix world repo), fall back to yay (Chaotic AUR / AUR).
+# Official repos only (Artix world repo) — no AUR/yay fallback.
 # Non-fatal: snapper still works for manual snapshots and snap-pac hooks without it.
 if ! pacman -Q snapper-openrc &>/dev/null; then
     tput setaf 3
@@ -122,8 +122,8 @@ if ! pacman -Q snapper-openrc &>/dev/null; then
     tput sgr0
     if ! pkg_install snapper-openrc; then
         tput setaf 3
-        echo "WARNING: snapper-openrc not found — automatic timeline snapshots won't run."
-        echo "         Install manually if needed: yay -S snapper-openrc"
+        echo "WARNING: snapper-openrc not found in official repos — automatic timeline snapshots won't run."
+        echo "         Not auto-installed from AUR by design. Install manually if you choose to: paru -S snapper-openrc"
         tput sgr0
         WARNINGS+=("snapper-openrc: not found in repos — automatic timeline snapshots disabled")
     fi
@@ -275,34 +275,15 @@ else
 fi
 
 ##################################################################################################################################
-# Install snapper-rollback from AUR (proper rollback for Arch)
+# snapper-rollback (full system rollback) — AUR-only, not installed automatically
 ##################################################################################################################################
 
 tput setaf 3
-echo "Installing snapper-rollback from AUR..."
+echo "snapper-rollback is AUR-only and is not installed automatically (no AUR/yay dependency by design)."
+echo "GRUB-menu snapshot boot + manual snapper commands above still work without it."
+echo "Install manually later if you choose to: paru -S snapper-rollback  (or yay -S snapper-rollback)"
 tput sgr0
-
-# Check for AUR helper
-if command -v paru &>/dev/null; then
-    if ! paru -S --noconfirm --needed snapper-rollback; then
-        tput setaf 3
-        echo "WARNING: Failed to install snapper-rollback from AUR"
-        tput sgr0
-        WARNINGS+=("snapper-rollback: AUR installation failed (install manually: paru -S snapper-rollback)")
-    fi
-elif command -v yay &>/dev/null; then
-    if ! yay -S --noconfirm --needed snapper-rollback; then
-        tput setaf 3
-        echo "WARNING: Failed to install snapper-rollback from AUR"
-        tput sgr0
-        WARNINGS+=("snapper-rollback: AUR installation failed (install manually: yay -S snapper-rollback)")
-    fi
-else
-    tput setaf 3
-    echo "WARNING: No AUR helper found (paru/yay). Skipping snapper-rollback."
-    tput sgr0
-    WARNINGS+=("snapper-rollback: No AUR helper (paru/yay) found - install one, then run: paru -S snapper-rollback")
-fi
+WARNINGS+=("snapper-rollback: not installed (AUR-only, skipped by design) — install manually if you want full rollback support")
 
 ##################################################################################################################################
 # Configure snapper-rollback for this system's layout
@@ -376,7 +357,7 @@ echo "  - snapper          : Snapshot management tool"
 echo "  - snap-pac         : Auto snapshots before/after pacman operations"
 echo "  - grub-btrfs       : Adds snapshots to GRUB boot menu"
 echo "  - snapper-openrc   : OpenRC init scripts for snapper services"
-echo "  - snapper-rollback : Full system rollback support (AUR)"
+echo "  - snapper-rollback : NOT installed (AUR-only, skipped by design — see warnings below)"
 echo
 echo "Configuration:"
 echo "  - Config file: /etc/snapper/configs/root"

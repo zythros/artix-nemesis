@@ -19,7 +19,7 @@ fi
 
 # Pairs: script filename, description (in desired run order)
 ENTRIES=(
-    "801-chaotic-aur-setup.sh"  "Add Chaotic AUR pre-built repo to pacman + install yay"
+    "801-chaotic-aur-setup.sh"  "Add Chaotic AUR pre-built repo to pacman + install yay (optional — nothing else here requires it)"
     "802-dwm-setup.sh"          "Build and install dwm window manager"
     "803-apps-setup.sh"         "Install preferred apps"
     "810-wallpaper-setup.sh"    "Set up wallpaper cycling system"

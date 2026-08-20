@@ -171,12 +171,18 @@ DRIVER_PKG="epson-inkjet-printer-escpr2"
 if pacman -Q "$DRIVER_PKG" &>/dev/null; then
     echo "$DRIVER_PKG already installed — skipping."
 else
-    echo "Installing $DRIVER_PKG (tries Chaotic AUR first, falls back to yay) ..."
+    echo "Installing $DRIVER_PKG from official repos ..."
     pkg_install "$DRIVER_PKG" || true
     if pacman -Q "$DRIVER_PKG" &>/dev/null; then
         tput setaf 2; echo "$DRIVER_PKG installed."; tput sgr0
     else
-        tput setaf 1; echo "ERROR: $DRIVER_PKG installation failed." >&2; tput sgr0
+        tput setaf 3
+        echo "NOTE: $DRIVER_PKG isn't in the official Artix/Arch repos (AUR-only)."
+        echo "      Skipping — not auto-installed from AUR by design. Options:"
+        echo "        - Build manually: paru -S $DRIVER_PKG  (or yay -S $DRIVER_PKG)"
+        echo "        - Or grab Epson's official .deb/.rpm from epson.com and convert with debtap/rpmextract"
+        echo "      Without it, step 8 below won't find a PPD and the printer add will fail."
+        tput sgr0
     fi
 fi
 

@@ -50,7 +50,10 @@ artix_pacman_nohook_setup() {
 #
 # Install a package via pacman (nohook conf) with a 120s timeout to guard
 # against libalpm's built-in ldconfig runner hanging post-install on Artix.
-# Falls back to yay for AUR packages.  Cleans db.lck before each attempt.
+# Official repos only — no AUR/yay fallback, by design (see 801/803 for the
+# opt-in Chaotic AUR path). Cleans db.lck before each attempt. Returns
+# non-zero if the package isn't available in a configured repo; callers
+# should treat that as "not available without AUR" rather than a hard error.
 # After calling, run `sudo ldconfig` manually if the package adds libraries.
 ##################################################################################################################################
 
@@ -65,11 +68,6 @@ pkg_install() {
     if [ "$exit_code" -eq 124 ]; then
         sudo pkill -TERM -P "$(pgrep -x pacman | tail -1)" 2>/dev/null || true
         sudo rm -f /var/lib/pacman/db.lck
-    fi
-    if command -v yay &>/dev/null; then
-        sudo rm -f /var/lib/pacman/db.lck
-        yay --config "$NOHOOK_CONF" -S --noconfirm --needed "$pkg"
-        return $?
     fi
     return 1
 }

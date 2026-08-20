@@ -160,13 +160,12 @@ tput sgr0
 
 if pacman -Q spnavcfg &>/dev/null; then
     echo "  spnavcfg already installed."
-elif command -v yay &>/dev/null; then
-    echo "  Building spnavcfg from AUR ..."
-    yay -S --noconfirm spnavcfg && { tput setaf 2; echo "  spnavcfg installed."; tput sgr0; } \
-        || { tput setaf 1; echo "  WARNING: spnavcfg install failed — configure /etc/spnavrc manually" >&2; tput sgr0; }
 else
     tput setaf 3
-    echo "  WARNING: yay not found — skipping spnavcfg (run 801 first, then reinstall)" >&2
+    echo "  spnavcfg is AUR-only — not installed automatically (no AUR/yay dependency by design)."
+    echo "  spacenavd itself works fine without it; spnavcfg is just a GUI for live tuning."
+    echo "  Install manually later if you choose to: paru -S spnavcfg  (or yay -S spnavcfg)"
+    echo "  Otherwise edit /etc/spnavrc by hand — see /etc/spnavrc.example after install."
     tput sgr0
 fi
 
