@@ -134,6 +134,17 @@ FISHCONF
 starship init fish | source
 FISHCONF
             fi
+            # Init starship in zsh too (harmless even if zsh isn't installed —
+            # the line just sits inert in .zshrc until it is)
+            ZSH_CONF="$HOME/.zshrc"
+            if grep -qF 'starship init zsh' "$ZSH_CONF" 2>/dev/null; then
+                echo "  → starship already initialized in .zshrc — skipping."
+            else
+                tput setaf 6
+                echo "  → adding starship init to $ZSH_CONF ..."
+                tput sgr0
+                echo 'eval "$(starship init zsh)"' >> "$ZSH_CONF"
+            fi
             # Container-aware prompt: shows a 📦 icon + name inside distrobox/podman/toolbox
             STARSHIP_CONF="$HOME/.config/starship.toml"
             mkdir -p "$(dirname "$STARSHIP_CONF")"
