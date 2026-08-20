@@ -28,6 +28,7 @@ APPS=(
     kdenlive             # video editor
     krename              # batch file renamer
     flameshot            # screenshot tool with annotation
+    rofi                 # app launcher (bound to Mod+d in dwm's config.h)
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
     # sublime-text-4      # text editor — AUR/chaotic-aur only, disabled by default (run 801 + uncomment to opt in)
