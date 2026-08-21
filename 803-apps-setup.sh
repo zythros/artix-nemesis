@@ -142,6 +142,29 @@ EOF
             echo "  → wrote $desktop (alacritty+sudo wrapper)"
             tput sgr0
             ;;
+        connman-gtk)
+            # Defaults to a status/tray icon and can start minimized to it —
+            # dwm has no systray (same gap that rules out nm-applet), so the
+            # window never appears. --no-icon skips the tray icon entirely.
+            local desktop="$HOME/.local/share/applications/connman-gtk.desktop"
+            mkdir -p "$(dirname "$desktop")"
+            cat > "$desktop" <<'EOF'
+[Desktop Entry]
+Name=ConnMan GTK
+GenericName=Network Connection Manager
+Comment=Manage Wi-Fi and Ethernet connections via connman
+Exec=connman-gtk --no-icon
+Icon=connman-gtk
+Terminal=false
+Type=Application
+Categories=Network;
+Keywords=Network;WiFi;Wireless;
+StartupNotify=true
+EOF
+            tput setaf 6
+            echo "  → wrote $desktop (--no-icon, no systray in dwm)"
+            tput sgr0
+            ;;
         flameshot)
             # On X11 + dwm (no xdg-desktop-portal Screenshot backend), flameshot's
             # portal-based capture times out after 30s and fails. Force the legacy
