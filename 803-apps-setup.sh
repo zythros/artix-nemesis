@@ -31,6 +31,7 @@ APPS=(
     rofi                 # app launcher (bound to Mod+d in dwm's config.h)
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
+    networkmanager-openrc # network management daemon (OpenRC service auto-enabled + started; may conflict with an existing network manager)
     podman               # rootless container engine (shared-root-mount OpenRC fixup auto-configured)
     distrobox            # run other distros' containers as if native (needs podman above)
     # sublime-text-4      # text editor — AUR/chaotic-aur only, disabled by default (run 801 + uncomment to opt in)
@@ -162,6 +163,22 @@ EOF
                 tput setaf 6
                 echo "  → set useX11LegacyScreenshot=true in $FLAMESHOT_CONF"
                 tput sgr0
+            fi
+            ;;
+        networkmanager-openrc)
+            # Enable + start the NetworkManager OpenRC service. NOTE: if the
+            # machine is currently on a different network manager (dhcpcd,
+            # iwd, netctl, ...) leave that disabled/removed first — running
+            # two network managers at once will fight over the interface.
+            sudo rc-update add NetworkManager default 2>/dev/null || true
+            echo "  → NetworkManager enabled at default runlevel."
+
+            if sudo rc-service NetworkManager start 2>/dev/null; then
+                tput setaf 2
+                echo "  → NetworkManager started."
+                tput sgr0
+            else
+                echo "  → NetworkManager already running (or start failed — check: sudo rc-service NetworkManager status)."
             fi
             ;;
         podman)
