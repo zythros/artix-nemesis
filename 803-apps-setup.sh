@@ -31,8 +31,6 @@ APPS=(
     rofi                 # app launcher (bound to Mod+d in dwm's config.h)
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
-    connman              # network connection manager (Wi-Fi/Ethernet; connmanctl CLI, no systray needed)
-    connman-openrc       # OpenRC service for connman (auto-enabled + started)
     podman               # rootless container engine (shared-root-mount OpenRC fixup auto-configured)
     distrobox            # run other distros' containers as if native (needs podman above)
     # sublime-text-4      # text editor — AUR/chaotic-aur only, disabled by default (run 801 + uncomment to opt in)
@@ -164,23 +162,6 @@ EOF
                 tput setaf 6
                 echo "  → set useX11LegacyScreenshot=true in $FLAMESHOT_CONF"
                 tput sgr0
-            fi
-            ;;
-        connman-openrc)
-            # Enable + start the connman OpenRC service. NOTE: if the machine
-            # is currently on a different network manager (dhcpcd, iwd,
-            # NetworkManager, netctl, ...) leave that disabled/removed first —
-            # running two network managers at once will fight over the
-            # interface.
-            sudo rc-update add connman default 2>/dev/null || true
-            echo "  → connman enabled at default runlevel."
-
-            if sudo rc-service connman start 2>/dev/null; then
-                tput setaf 2
-                echo "  → connman started."
-                tput sgr0
-            else
-                echo "  → connman already running (or start failed — check: sudo rc-service connman status)."
             fi
             ;;
         podman)
