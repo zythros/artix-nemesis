@@ -31,6 +31,7 @@ APPS=(
     rofi                 # app launcher (bound to Mod+d in dwm's config.h)
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
+    connman-gtk          # GUI for connman (already installed/running on Artix by default; standalone window, no systray needed)
     podman               # rootless container engine (shared-root-mount OpenRC fixup auto-configured)
     distrobox            # run other distros' containers as if native (needs podman above)
     # sublime-text-4      # text editor — AUR/chaotic-aur only, disabled by default (run 801 + uncomment to opt in)
