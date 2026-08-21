@@ -167,22 +167,20 @@ EOF
             fi
             ;;
         connman-openrc)
-            # Enable + start the connman OpenRC service. The actual init
-            # script is named "connmand", not "connman" — confirmed live via
-            # `rc-status default` on the target machine. NOTE: if the machine
+            # Enable + start the connman OpenRC service. NOTE: if the machine
             # is currently on a different network manager (dhcpcd, iwd,
             # NetworkManager, netctl, ...) leave that disabled/removed first —
             # running two network managers at once will fight over the
             # interface.
-            sudo rc-update add connmand default 2>/dev/null || true
-            echo "  → connmand enabled at default runlevel."
+            sudo rc-update add connman default 2>/dev/null || true
+            echo "  → connman enabled at default runlevel."
 
-            if sudo rc-service connmand start 2>/dev/null; then
+            if sudo rc-service connman start 2>/dev/null; then
                 tput setaf 2
-                echo "  → connmand started."
+                echo "  → connman started."
                 tput sgr0
             else
-                echo "  → connmand already running (or start failed — check: sudo rc-service connmand status)."
+                echo "  → connman already running (or start failed — check: sudo rc-service connman status)."
             fi
             ;;
         podman)
