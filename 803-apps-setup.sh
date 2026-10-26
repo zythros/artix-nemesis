@@ -7,7 +7,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #             Edit the APPS list below — comment out any line to skip that app.
 #             Packages are sourced from official Artix/Arch repos only — no AUR
 #             or Chaotic AUR. AUR-only apps are deliberately not listed here.
-#             Post-install fixups (e.g. sudo wrappers) are handled automatically.
+#             Post-install fixups (e.g. config tweaks) are handled automatically.
 ##################################################################################################################################
 #
 #   DO NOT JUST RUN THIS. EXAMINE AND JUDGE. RUN AT YOUR OWN RISK.
@@ -18,15 +18,10 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 # Comment out any line to skip that app.
 APPS=(
     fish                 # login shell (chsh + fish_add_path ~/.local/bin auto-configured)
-    gparted              # partition editor (alacritty+sudo wrapper auto-configured)
-    gimp                 # image editor
-    darktable            # RAW photo editor
     vlc                  # media player (codecs: libdvdcss libdvdread libdvdnav libbluray libaacs auto-installed)
     kdenlive             # video editor
     krename              # batch file renamer
     flameshot            # screenshot tool with annotation
-    rofi                 # app launcher (bound to Mod+d in dwm's config.h)
-    freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
     connman-gtk          # GUI for connman (already installed/running on Artix by default; standalone window, no systray needed)
     python-yaml          # dep: blood-pressure-tracker
@@ -114,27 +109,6 @@ if status is-interactive
 end
 FISHCONF
             fi
-            ;;
-        gparted)
-            # polkit service not available on Artix — run via alacritty+sudo instead
-            local desktop="$HOME/.local/share/applications/gparted.desktop"
-            mkdir -p "$(dirname "$desktop")"
-            cat > "$desktop" <<'EOF'
-[Desktop Entry]
-Name=GParted
-GenericName=Partition Editor
-Comment=Create, reorganize, and delete partitions
-Exec=alacritty -e sudo gparted %f
-Icon=gparted
-Terminal=false
-Type=Application
-Categories=System;Filesystem;
-Keywords=Partition;
-StartupNotify=true
-EOF
-            tput setaf 6
-            echo "  → wrote $desktop (alacritty+sudo wrapper)"
-            tput sgr0
             ;;
         connman-gtk)
             # Defaults to a status/tray icon and can start minimized to it —
