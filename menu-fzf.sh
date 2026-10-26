@@ -35,6 +35,7 @@ ENTRIES=(
     "881-nvidia-vm-setup.sh"    "NVIDIA drivers — VM guest (3090 passthrough)"
     "890-vfio-passthrough.sh"   "Configure VFIO passthrough for RTX 3090"
     "895-virt-manager-setup.sh" "Install virt-manager / QEMU-KVM"
+    "896-distrobox-setup.sh"    "Install podman + distrobox; enable shared-root mount service"
 )
 
 ##################################################################################################################################
