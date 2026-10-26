@@ -101,8 +101,7 @@ fi
 # systemd sets this automatically at boot; OpenRC does not, so podman
 # warns `"/" is not a shared mount` and host mounts made after a container
 # starts (USB drives, shares) don't show up inside it. Fix: a small custom
-# OpenRC service that runs `mount --make-rshared /` at boot — same pattern
-# as 835-spacemouse-setup.sh's spacenavd service.
+# OpenRC service that runs `mount --make-rshared /` at boot.
 
 echo
 echo "Configuring shared-root service..."

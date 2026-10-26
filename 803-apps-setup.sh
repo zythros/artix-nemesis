@@ -22,6 +22,7 @@ APPS=(
     kdenlive             # video editor
     krename              # batch file renamer
     flameshot            # screenshot tool with annotation
+    rofi                 # app launcher (bound to Mod+d in dwm's config.h)
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
     connman-gtk          # GUI for connman (already installed/running on Artix by default; standalone window, no systray needed)
     python-yaml          # dep: blood-pressure-tracker
