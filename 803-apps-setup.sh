@@ -6,8 +6,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 # Purpose   : Install base GUI applications.
 #             Edit the APPS list below — comment out any line to skip that app.
 #             Packages are sourced from official Artix/Arch repos only — no AUR
-#             or Chaotic AUR required. Anything AUR-only is commented out below;
-#             uncomment it yourself only if you've deliberately opted into 801.
+#             or Chaotic AUR. AUR-only apps are deliberately not listed here.
 #             Post-install fixups (e.g. sudo wrappers) are handled automatically.
 ##################################################################################################################################
 #
@@ -20,9 +19,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 APPS=(
     fish                 # login shell (chsh + fish_add_path ~/.local/bin auto-configured)
     gparted              # partition editor (alacritty+sudo wrapper auto-configured)
-    mullvad-browser-bin  # privacy browser
     gimp                 # image editor
-    freetube             # YouTube frontend
     darktable            # RAW photo editor
     vlc                  # media player (codecs: libdvdcss libdvdread libdvdnav libbluray libaacs auto-installed)
     kdenlive             # video editor
@@ -32,7 +29,6 @@ APPS=(
     freecad              # parametric 3D CAD modeler
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
     connman-gtk          # GUI for connman (already installed/running on Artix by default; standalone window, no systray needed)
-    # sublime-text-4      # text editor — AUR/chaotic-aur only, disabled by default (run 801 + uncomment to opt in)
     python-yaml          # dep: blood-pressure-tracker
     python-matplotlib    # dep: blood-pressure-tracker
 )
