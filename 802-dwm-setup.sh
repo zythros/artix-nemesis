@@ -5,7 +5,8 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 # Author    : zythros
 # Purpose   : Set up dwm as a desktop environment option.
 #             Clones github.com/zythros/dwm, builds from source, installs,
-#             writes a LightDM xsessions entry, and writes ~/.dwm/keybindings.txt.
+#             writes a LightDM xsessions entry, disables screen blanking/DPMS
+#             (~/.xprofile), and writes ~/.dwm/keybindings.txt.
 #             Note: Arch [extra] repo must be present (added by 880 or 881) for dmenu.
 ##################################################################################################################################
 #
@@ -139,6 +140,26 @@ Type=Application
 EOF
     tput setaf 2
     echo "Session entry created (dwm now runs under a D-Bus session — fixes flameshot and other D-Bus-dependent apps)."
+    tput sgr0
+fi
+
+##################################################################################################################################
+# 6b. Disable screen blanking / DPMS in the dwm session
+#     X defaults to blanking after 10 min and DPMS-off after that; dwm has no
+#     power settings of its own. LightDM's Xsession sources ~/.xprofile at login.
+#     Not done via xorg.conf.d ServerFlags: 880's 99-nvidia-flags.conf already
+#     has a ServerFlags section and only one wins.
+##################################################################################################################################
+
+echo
+sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed xorg-xset
+XPROFILE="$HOME/.xprofile"
+if grep -qF 'xset s off -dpms' "$XPROFILE" 2>/dev/null; then
+    echo "$XPROFILE already disables screen blanking — skipping."
+else
+    echo 'xset s off -dpms  # no screen blanking / monitor sleep (802-dwm-setup.sh)' >> "$XPROFILE"
+    tput setaf 2
+    echo "Screen blanking disabled in $XPROFILE (takes effect at next login)."
     tput sgr0
 fi
 
