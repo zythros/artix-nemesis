@@ -245,7 +245,7 @@ echo
 echo "Launcher wrapper: $WRAPPER"
 echo "  j4-dmenu-desktop with centered grid style (-c -l 8), dwm bar colors"
 echo
-echo "dwm rebuilt: Mod+p / Mod+d → dmenu-desktop (j4 + zythros fork)"
+echo "dwm rebuilt: Mod+d → dmenu-desktop (j4 + zythros fork), Mod+Shift+d → rofi"
 echo
 echo "Patches in zythros/dmenu fork:"
 echo "  -c    center on screen"
