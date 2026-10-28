@@ -60,6 +60,33 @@ echo "Runtime dependencies installed."
 tput sgr0
 
 ##################################################################################################################################
+# 2b. mullvad-browser (Mod+m) — only if Chaotic AUR is already enabled
+#     mullvad-browser-bin isn't in the official repos. Chaotic AUR stays
+#     opt-in (801), so this never adds it — just skips when it's absent.
+##################################################################################################################################
+
+echo
+if pacman -Q mullvad-browser-bin &>/dev/null; then
+    echo "mullvad-browser already installed."
+elif grep -q '^\[chaotic-aur\]' /etc/pacman.conf; then
+    echo "Installing mullvad-browser-bin (Chaotic AUR) ..."
+    if pkg_install mullvad-browser-bin; then
+        tput setaf 2
+        echo "mullvad-browser installed."
+        tput sgr0
+    else
+        tput setaf 3
+        echo "WARNING: mullvad-browser-bin install failed — Mod+m won't launch anything."
+        tput sgr0
+    fi
+else
+    tput setaf 3
+    echo "Chaotic AUR not enabled — skipping mullvad-browser (Mod+m won't launch anything)."
+    echo "To get it: run 801-chaotic-aur-setup.sh, then re-run this script."
+    tput sgr0
+fi
+
+##################################################################################################################################
 # 3. Clone or update fork
 ##################################################################################################################################
 
@@ -181,7 +208,7 @@ Launching
   Mod + Shift + Return  thunar (file manager)
   Mod + d               dmenu (run launcher)
   Mod + Shift + d       rofi (run launcher)
-  Mod + m               mullvad-browser
+  Mod + m               mullvad-browser (needs Chaotic AUR)
   Mod + s               flameshot (screenshot)
 
 Windows
