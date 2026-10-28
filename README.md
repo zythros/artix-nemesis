@@ -31,7 +31,7 @@ session in LightDM.
 |---|---|---|
 | `800-base-desktop.sh` | core | Xorg, LightDM and D-Bus. Skip it if your install already boots to a login screen |
 | `801-chaotic-aur-setup.sh` | optional | Chaotic AUR repo + yay; also adds Arch `[extra]` |
-| `802-dwm-setup.sh` | core | Builds zythros/dwm and zythros/dmenu (Mod+d launcher via j4-dmenu-desktop), adds the LightDM session, turns off screen blanking |
+| `802-dwm-setup.sh` | core | Builds zythros/dwm and zythros/dmenu (Mod+d launcher via j4-dmenu-desktop), adds the LightDM session, turns off screen blanking, sets JetBrains Mono Nerd Font as the default monospace font |
 | `803-apps-setup.sh` | core | Apps from the `APPS` list at the top of the script, plus their config fixups |
 | `810-wallpaper-setup.sh` | core | `wallpaper.sh` cycler + zythros/wallpaper images (Mod+w / Mod+Shift+w) |
 | `830-slstatus-setup.sh` | core | Builds zythros/slstatus for the dwm bar |

@@ -9,7 +9,8 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #             wrapper (dmenu-desktop, what Mod+d runs), then clones
 #             github.com/zythros/dwm, builds from source, installs, writes a
 #             LightDM xsessions entry, disables screen blanking/DPMS
-#             (~/.xprofile), and writes ~/.dwm/keybindings.txt.
+#             (~/.xprofile), writes ~/.dwm/keybindings.txt, and makes
+#             JetBrains Mono Nerd Font the default "monospace" font.
 #             Needs Xorg + LightDM already installed (800-base-desktop.sh).
 ##################################################################################################################################
 #
@@ -20,11 +21,12 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 script_start "Setting up dwm + dmenu"
 
 ##################################################################################################################################
-# 1. Build + runtime dependencies (alacritty, j4-dmenu-desktop; xset for 8)
+# 1. Build + runtime dependencies (alacritty, j4-dmenu-desktop; xset for 8;
+#    JetBrains Mono Nerd Font for 10)
 ##################################################################################################################################
 
 section "Dependencies"
-ensure_pkgs base-devel libx11 libxft libxinerama alacritty j4-dmenu-desktop xorg-xset
+ensure_pkgs base-devel libx11 libxft libxinerama alacritty j4-dmenu-desktop xorg-xset ttf-jetbrains-mono-nerd
 
 ##################################################################################################################################
 # 2. mullvad-browser (Mod+m) — only if Chaotic AUR is already enabled
@@ -224,11 +226,43 @@ EOF
 ok "Keybindings file written."
 
 ##################################################################################################################################
+# 10. Default "monospace" font -> JetBrains Mono Nerd Font
+#     dwm, dmenu (incl. the Mod+d wrapper) and 803's alacritty config all ask
+#     for "monospace", so one fontconfig alias switches them all. The Mono
+#     variant keeps Nerd Font icons one cell wide in terminals. A conf.d file,
+#     not ~/.config/fontconfig/fonts.conf (lxqt-config-appearance owns that).
+#     Loaded via 50-user.conf, ahead of 60-latin.conf's defaults.
+##################################################################################################################################
+
+echo
+FONT_CONF="$HOME/.config/fontconfig/conf.d/10-monospace-jetbrains.conf"
+echo "Writing $FONT_CONF ..."
+mkdir -p "$(dirname "$FONT_CONF")"
+cat > "$FONT_CONF" <<'EOF'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<!-- written by artix-nemesis 802-dwm-setup.sh -->
+<fontconfig>
+  <alias binding="strong">
+    <family>monospace</family>
+    <prefer><family>JetBrainsMono Nerd Font Mono</family></prefer>
+  </alias>
+</fontconfig>
+EOF
+MONO_FONT=$(fc-match -f '%{family[0]}' monospace)
+if [ "$MONO_FONT" = "JetBrainsMono Nerd Font Mono" ]; then
+    ok "monospace -> $MONO_FONT (dwm/dmenu pick it up at next login, alacritty in new windows)."
+else
+    warn "monospace still resolves to '$MONO_FONT' — is ttf-jetbrains-mono-nerd installed?"
+fi
+
+##################################################################################################################################
 
 script_done
 echo "dwm is now available as a session in LightDM."
 echo "Keybindings: $KEYBINDINGS_FILE"
 echo "Source:      $DWM_SRC, $DMENU_SRC"
 echo "Mod+d:       $WRAPPER (j4-dmenu-desktop + zythros dmenu, dwm bar colours)"
+echo "Font:        $FONT_CONF (monospace -> JetBrainsMono Nerd Font Mono)"
 echo "To rebuild:  make -C $DWM_SRC clean && make -C $DWM_SRC && sudo make -C $DWM_SRC install"
 echo
