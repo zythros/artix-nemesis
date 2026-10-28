@@ -4,6 +4,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : NVIDIA drivers — bare metal (dual GPU)
+# Group     : hardware
 # Purpose   : Configure Xorg and kernel for dual NVIDIA GPUs
 #             Fixes modesetting/glamor crash that prevents SDDM from starting
 ##################################################################################################################################
@@ -25,23 +26,7 @@ script_start "Setting up NVIDIA Xorg configuration"
 # artix-archlinux-support provides /etc/pacman.d/mirrorlist-arch; we add [extra] ourselves.
 ##################################################################################################################################
 
-ensure_pkgs artix-archlinux-support || die "artix-archlinux-support is needed for Arch [extra]"
-
-if ! grep -q '^\[extra\]' /etc/pacman.conf; then
-    _c setaf 3
-    echo "Arch [extra] repo not in pacman.conf — adding..."
-    _c sgr0
-    sudo tee -a /etc/pacman.conf <<'PACMAN_EOF'
-
-# Arch Linux [extra] repo — added by 880-nvidia-xorg-setup.sh
-[extra]
-Include = /etc/pacman.d/mirrorlist-arch
-PACMAN_EOF
-fi
-
-# [extra] may have just been added — regenerate NOHOOK_CONF so -Sy includes it
-nohook_regen
-
+ensure_arch_extra || die "Arch [extra] repo unavailable"
 pkg_sync || die "could not sync package databases"
 
 ##################################################################################################################################

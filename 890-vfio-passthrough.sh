@@ -3,6 +3,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Configure VFIO passthrough for RTX 3090
+# Group     : hardware
 # Purpose   : Configure VFIO passthrough for the secondary GPU — isolates it from the nvidia driver
 #             so it can be assigned exclusively to a VM via virt-manager / QEMU.
 ##################################################################################################################################
@@ -11,15 +12,21 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-script_start "Setting up VFIO passthrough (RTX 3090)"
+# PCI model string (as shown by lspci) of the GPU to pass through to VMs.
+# GA102 = the RTX 3090 on artix-pc. Its audio function (.1) is bound too.
+PASSTHROUGH_GPU_MODEL="GA102"
 
 ##################################################################################################################################
-# Detect the passthrough GPU (GA102) PCI address and IDs
+
+script_start "Setting up VFIO passthrough ($PASSTHROUGH_GPU_MODEL)"
+
+##################################################################################################################################
+# Detect the passthrough GPU PCI address and IDs
 ##################################################################################################################################
 
-GPU_ADDR=$(lspci | grep "GA102" | grep -i "VGA" | awk '{print $1}')
-[ -n "$GPU_ADDR" ] || die "Could not detect RTX 3090 (GA102) PCI address. Aborting."
-echo "Detected RTX 3090 (GA102) at: $GPU_ADDR"
+GPU_ADDR=$(lspci | grep "$PASSTHROUGH_GPU_MODEL" | grep -i "VGA" | awk '{print $1}')
+[ -n "$GPU_ADDR" ] || die "Could not detect a $PASSTHROUGH_GPU_MODEL GPU PCI address. Aborting."
+echo "Detected $PASSTHROUGH_GPU_MODEL GPU at: $GPU_ADDR"
 
 # Companion audio device is at the same bus:device, function 1
 AUDIO_ADDR="${GPU_ADDR%.*}.1"
@@ -29,9 +36,9 @@ AUDIO_ID=$(lspci -nn | grep "^$AUDIO_ADDR " | grep -oP '\[10de:[0-9a-f]+\]' | ta
 
 [ -n "$GPU_ID" ] || die "Could not extract PCI ID for $GPU_ADDR. Aborting."
 
-echo "RTX 3090 GPU  PCI ID: $GPU_ID"
+echo "Passthrough GPU   PCI ID: $GPU_ID"
 if [ -n "$AUDIO_ID" ]; then
-    echo "RTX 3090 Audio PCI ID: $AUDIO_ID"
+    echo "Passthrough audio PCI ID: $AUDIO_ID"
     VFIO_IDS="$GPU_ID,$AUDIO_ID"
 else
     warn "No audio device found at $AUDIO_ADDR — only binding GPU."

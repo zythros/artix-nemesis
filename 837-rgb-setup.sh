@@ -3,6 +3,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Install OpenRGB; set all RGB hardware to #ff8000 at boot
+# Group     : hardware
 # Purpose   : Install OpenRGB and set all RGB hardware (fans, RAM, GPU, keyboard) to a static color at boot.
 #             Uses /etc/local.d/rgb.start (OpenRC local service) to apply the color on every boot.
 #             i2c-dev is loaded in the boot script so OpenRGB can reach RAM RGB controllers over SMBus.
@@ -12,7 +13,23 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
+# Static colour (hex, no #) applied to every detected RGB device
 RGB_COLOR="ff8000"
+
+# Addressable zones to resize before setting the colour. Device 2 is the
+# ASUS Aura motherboard controller on artix-pc; zones 1-3 are its Aura
+# Addressable headers. Find yours with: openrgb --list-devices
+# Set AURA_ZONES="" to skip resizing.
+AURA_DEVICE=2
+AURA_ZONES="1 2 3"
+AURA_ZONE_SIZE=100   # intentionally overshoots — one static colour makes the exact count irrelevant
+
+##################################################################################################################################
+
+ZONE_CMDS=""
+for zone in $AURA_ZONES; do
+    ZONE_CMDS+="openrgb --device $AURA_DEVICE --zone $zone --size $AURA_ZONE_SIZE"$'\n'
+done
 
 script_start "RGB setup"
 
@@ -21,6 +38,7 @@ script_start "RGB setup"
 ##################################################################################################################################
 
 section "Installing OpenRGB"
+ensure_arch_extra   # openrgb is only in Arch [extra]
 ensure_pkgs openrgb || die "openrgb is required"
 
 # Reload udev rules so the openrgb USB rules (60-openrgb.rules) take effect immediately
@@ -40,14 +58,8 @@ sudo tee /etc/local.d/rgb.start > /dev/null <<EOF || die "could not write /etc/l
 modprobe i2c-dev
 # Allow USB devices (keyboard, fan hub) time to enumerate before OpenRGB scans
 sleep 5
-# Resize ASUS Aura Addressable zones on device 2 (motherboard) to 100 LEDs each.
-# Zones 1-3 map to Aura Addressable 1-3 headers; fans and PSU light strip are
-# connected via the Fractal case ARGB hub. LED count intentionally overshoots --
-# single static color makes the exact count irrelevant.
-openrgb --device 2 --zone 1 --size 100
-openrgb --device 2 --zone 2 --size 100
-openrgb --device 2 --zone 3 --size 100
-openrgb --mode static --color ${RGB_COLOR}
+# Resize addressable zones (fans and PSU light strip hang off the case ARGB hub)
+${ZONE_CMDS}openrgb --mode static --color ${RGB_COLOR}
 EOF
 
 sudo chmod +x /etc/local.d/rgb.start

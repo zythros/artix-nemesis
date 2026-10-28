@@ -3,6 +3,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Install podman + distrobox; enable shared-root mount service
+# Group     : optional
 # Purpose   : Install podman + distrobox (rootless containers)
 #             Artix/OpenRC port — adds a shared-root OpenRC service, since
 #             OpenRC (unlike systemd) leaves "/" as a private mount at boot

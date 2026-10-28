@@ -3,6 +3,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Build slstatus; write datetime to DWM bar
+# Group     : core
 # Purpose   : Build slstatus from zythros fork; autostart via ~/.xprofile
 #
 # Artix/dwm differences vs arch-nemesis 830:

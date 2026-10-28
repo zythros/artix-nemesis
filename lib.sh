@@ -182,6 +182,28 @@ nohook_regen() {
 # Package helpers
 ##################################################################################################################################
 
+# ensure_arch_extra — make Arch's [extra] repo available (idempotent).
+# Some packages (nvidia-utils, openrgb, gscan2pdf) aren't in Artix's own
+# repos. artix-archlinux-support provides /etc/pacman.d/mirrorlist-arch;
+# the [extra] section is appended to pacman.conf, then databases are synced.
+ensure_arch_extra() {
+    ensure_pkgs artix-archlinux-support || return 1
+    if grep -q '^\[extra\]' /etc/pacman.conf; then
+        echo "Arch [extra] already in /etc/pacman.conf."
+        return 0
+    fi
+    echo "Adding Arch [extra] to /etc/pacman.conf ..."
+    sudo tee -a /etc/pacman.conf > /dev/null <<PACMAN_EOF || { err "could not add [extra] to /etc/pacman.conf"; return 1; }
+
+# Arch Linux [extra] repo — added by $(basename "$0")
+[extra]
+Include = /etc/pacman.d/mirrorlist-arch
+PACMAN_EOF
+    ok "[extra] added to /etc/pacman.conf"
+    nohook_regen
+    pkg_sync
+}
+
 # pkg_sync — refresh package databases
 pkg_sync() {
     artix_pacman_nohook_setup

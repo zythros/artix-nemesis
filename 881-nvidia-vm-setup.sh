@@ -4,6 +4,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : NVIDIA drivers — VM guest (3090 passthrough)
+# Group     : hardware
 # Purpose   : Install NVIDIA drivers inside a VM with a passed-through RTX 3090 (GA102).
 #             Only one GPU is visible to the guest, so no Xorg pinning or dual-GPU
 #             workarounds are needed — just driver install + nouveau blacklist.
@@ -19,22 +20,7 @@ script_start "Setting up NVIDIA drivers (VM guest)"
 # Ensure Arch [extra] repo is available — nvidia-utils lives there, not in Artix's own repos.
 ##################################################################################################################################
 
-ensure_pkgs artix-archlinux-support || die "artix-archlinux-support is needed for Arch [extra]"
-
-if ! grep -q '^\[extra\]' /etc/pacman.conf; then
-    _c setaf 3
-    echo "Arch [extra] repo not in pacman.conf — adding..."
-    _c sgr0
-    sudo tee -a /etc/pacman.conf <<'PACMAN_EOF'
-
-# Arch Linux [extra] repo — added by 881-nvidia-vm-setup.sh
-[extra]
-Include = /etc/pacman.d/mirrorlist-arch
-PACMAN_EOF
-fi
-
-# [extra] may have just been added — regenerate NOHOOK_CONF so -Sy includes it
-nohook_regen
+ensure_arch_extra || die "Arch [extra] repo unavailable"
 pkg_sync || die "could not sync package databases"
 
 ##################################################################################################################################

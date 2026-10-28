@@ -3,11 +3,12 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Build and install dwm window manager
+# Group     : core
 # Purpose   : Set up dwm as a desktop environment option.
 #             Clones github.com/zythros/dwm, builds from source, installs,
 #             writes a LightDM xsessions entry, disables screen blanking/DPMS
 #             (~/.xprofile), and writes ~/.dwm/keybindings.txt.
-#             Note: Arch [extra] repo must be present (added by 880 or 881) for dmenu.
+#             Needs Xorg + LightDM already installed (800-base-desktop.sh).
 ##################################################################################################################################
 #
 #   DO NOT JUST RUN THIS. EXAMINE AND JUDGE. RUN AT YOUR OWN RISK.

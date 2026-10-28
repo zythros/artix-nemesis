@@ -3,14 +3,15 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Install virt-manager / QEMU-KVM
+# Group     : optional
 # Purpose   : Install and configure virt-manager / QEMU-KVM on the host.
 #             - Installs all required packages
 #             - Enables and starts libvirtd
 #             - Adds current user to libvirt + kvm groups
 #             - Activates the default NAT network (autostart)
-#             - Registers /mnt/vmssd as a libvirt storage pool (existing qcow2 files)
+#             - Registers VM_DISK_DIR (below, /mnt/vmssd) as a libvirt storage pool (existing qcow2 files)
 #
-#             RTX 3090 is already bound to vfio-pci (890-vfio-passthrough.sh).
+#             A GPU bound to vfio-pci by 890-vfio-passthrough.sh can be passed through.
 #             After running this script, add it as a PCI host device in virt-manager.
 ##################################################################################################################################
 #
@@ -239,7 +240,7 @@ echo "Next steps:"
 echo "  1. Log out and back in (or run 'newgrp libvirt') for group membership to take effect"
 echo "  2. Open virt-manager and create a new VM"
 echo "  3. Under 'Storage', select pool '$POOL_NAME' to use existing qcow2 files"
-echo "  4. To attach RTX 3090 (already vfio-bound):"
+echo "  4. To attach a GPU bound to vfio-pci by 890-vfio-passthrough.sh:"
 echo "       VM Details -> Add Hardware -> PCI Host Device"
-echo "       Select: RTX 3090 (IOMMU group 36: 3f:00.0 + 3f:00.1)"
+echo "       Select the GPU and its audio function (same bus:device, .0 and .1)"
 echo

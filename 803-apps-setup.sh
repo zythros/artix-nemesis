@@ -3,6 +3,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Install preferred apps
+# Group     : core
 # Purpose   : Install base GUI applications.
 #             Edit the APPS list below — comment out any line to skip that app.
 #             Packages are sourced from official Artix/Arch repos only — no AUR

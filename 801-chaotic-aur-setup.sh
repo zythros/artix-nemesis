@@ -3,6 +3,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Add Chaotic AUR pre-built repo to pacman + install yay (optional — nothing else here requires it)
+# Group     : optional
 # Purpose   : Add the Chaotic AUR pre-built repository to pacman and install yay.
 #             Chaotic AUR provides pre-built AUR packages (e.g. bridge-utils, many others).
 #             https://aur.chaotic.cx
@@ -62,18 +63,7 @@ fi
 
 # Also set up Arch [extra] here so that scripts running after 801 (803, 802, 820, etc.)
 # can install packages like freecad, libx11, libxft without depending on 880 having run.
-ensure_pkgs artix-archlinux-support
-
-if ! grep -q '^\[extra\]' /etc/pacman.conf; then
-    echo "Adding Arch [extra] to $PACMAN_CONF ..."
-    sudo tee -a /etc/pacman.conf > /dev/null <<'PACMAN_EOF'
-
-# Arch Linux [extra] repo — added by 801-chaotic-aur-setup.sh
-[extra]
-Include = /etc/pacman.d/mirrorlist-arch
-PACMAN_EOF
-    ok "[extra] added to $PACMAN_CONF"
-fi
+ensure_arch_extra
 
 # NOHOOK_CONF was snapshotted before [chaotic-aur] and [extra] were added above
 nohook_regen

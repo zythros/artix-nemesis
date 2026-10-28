@@ -3,6 +3,7 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
 # Menu      : Set up wallpaper cycling system
+# Group     : core
 # Purpose   : Set up wallpaper cycling system (can be run standalone)
 #
 # Artix/dwm differences vs arch-nemesis 810:
