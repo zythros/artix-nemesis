@@ -6,41 +6,49 @@
 ##################################################################################################################################
 # artix_pacman_nohook_setup
 #
-# Creates a temporary pacman.conf with an empty HookDir and registers a
-# cleanup trap.  Call once near the top of any script that runs pacman,
-# then use:  sudo pacman --config "$NOHOOK_CONF" ...
+# Creates a temporary pacman.conf whose HookDir masks only the D-Bus hooks
+# that hang, and registers a cleanup trap.  Call once near the top of any
+# script that runs pacman, then use:  sudo pacman --config "$NOHOOK_CONF" ...
 #
-# Why: post-install hooks hang on Artix/OpenRC because they try to talk to
-# D-Bus as root — no session is available.  Skipping hooks avoids the hang.
-# Run update-desktop-database / gtk-update-icon-cache manually if needed.
+# Why: a few post-install hooks hang on Artix/OpenRC because they try to talk
+# to D-Bus as root — no session is available.
 ##################################################################################################################################
 
-# Pacman hook suppression works in two layers:
-#   1. HookDir in pacman.conf → suppresses /etc/pacman.d/hooks/
-#   2. Moving /usr/share/libalpm/hooks aside → suppresses system hooks
-#      (dbus-reload, dconf-update, gvfsd, etc.) which bypass HookDir and hang
-#      on Artix/OpenRC because they try to talk to D-Bus as root.
+# pacman always runs /usr/share/libalpm/hooks/, then HookDir; a HookDir entry
+# that is a symlink to /dev/null masks the system hook of the same name
+# (alpm-hooks(5)).  Only these are masked — everything else (glib schemas,
+# icon/desktop caches, sysusers/tmpfiles, depmod, mkinitcpio, ...) still runs.
+# Masking the whole hooks dir used to leave e.g. virt-manager unlaunchable
+# (gsettings schema never compiled).
+NOHOOK_MASKED_HOOKS=(
+    dbus-reload.hook
+    dconf-update.hook
+    gvfsd.hook
+    accounts-daemon-restart.hook
+)
+
+# Left over from the old whole-dir approach if a script was killed mid-run.
 SYSTEM_HOOKS_DIR="/usr/share/libalpm/hooks"
 SYSTEM_HOOKS_BAK="/usr/share/libalpm/hooks.nohook-bak"
 
 artix_pacman_cleanup() {
     sudo rm -rf "${NOHOOK_DIR:-}" "${NOHOOK_CONF:-}"
+}
+
+artix_pacman_nohook_setup() {
     if sudo test -d "$SYSTEM_HOOKS_BAK" 2>/dev/null; then
         sudo rm -rf "$SYSTEM_HOOKS_DIR"
         sudo mv "$SYSTEM_HOOKS_BAK" "$SYSTEM_HOOKS_DIR"
     fi
-}
-
-artix_pacman_nohook_setup() {
     NOHOOK_DIR="$(mktemp -d)"
+    local hook
+    for hook in "${NOHOOK_MASKED_HOOKS[@]}"; do
+        ln -s /dev/null "$NOHOOK_DIR/$hook"
+    done
     # Create the conf file as root so all subsequent writes stay root→root.
     NOHOOK_CONF="$(sudo mktemp)"
     sudo chmod 644 "$NOHOOK_CONF"
     sudo sh -c "grep -v '^\s*HookDir' /etc/pacman.conf | sed '/^\[options\]/a HookDir = $NOHOOK_DIR' > '$NOHOOK_CONF'"
-    # Move system hooks aside; pacman always searches /usr/share/libalpm/hooks/
-    # regardless of HookDir — this stops dbus-reload.hook etc. from hanging.
-    sudo mv "$SYSTEM_HOOKS_DIR" "$SYSTEM_HOOKS_BAK"
-    sudo mkdir -p "$SYSTEM_HOOKS_DIR"
     export NOHOOK_DIR NOHOOK_CONF
     trap "artix_pacman_cleanup" EXIT
 }
