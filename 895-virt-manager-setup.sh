@@ -57,7 +57,6 @@ echo
 # libvirt-openrc: OpenRC init scripts for libvirtd and virtlogd
 # virt-manager  : GTK GUI for managing VMs
 # dnsmasq       : NAT/DHCP for the default libvirt network
-# bridge-utils  : brctl — needed for bridged networking
 # NOTE: iptables-nft intentionally omitted — conflicts with iptables (already installed)
 #       libvirt works with whichever iptables backend is present
 # edk2-ovmf     : UEFI firmware for VMs (required for Secure Boot / Windows 11); explicit name avoids provider prompt
@@ -71,7 +70,6 @@ PACKAGES=(
     libvirt-openrc
     virt-manager
     dnsmasq
-    bridge-utils
     edk2-ovmf
     swtpm
     virt-viewer
@@ -265,7 +263,13 @@ echo
 # virt-manager stores its UI defaults in dconf/gsettings.
 # Setting firmware=uefi makes the New VM wizard pre-select UEFI instead of BIOS.
 # This must run as the regular user (not sudo) to hit the right dconf store.
-if gsettings set org.virt-manager.virt-manager.new-vm firmware uefi 2>/dev/null; then
+# Without a session bus (TTY, ssh) gsettings silently falls back to an
+# in-memory backend and still exits 0 — use a throwaway bus so dconf writes
+# the real file, and read the value back to confirm.
+GSETTINGS=(gsettings)
+[ -z "$DBUS_SESSION_BUS_ADDRESS" ] && GSETTINGS=(dbus-run-session -- gsettings)
+if "${GSETTINGS[@]}" set org.virt-manager.virt-manager.new-vm firmware uefi 2>/dev/null \
+    && [ "$("${GSETTINGS[@]}" get org.virt-manager.virt-manager.new-vm firmware 2>/dev/null)" = "'uefi'" ]; then
     tput setaf 2
     echo "virt-manager default firmware set to UEFI."
     tput sgr0

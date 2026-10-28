@@ -128,6 +128,8 @@ if [ -f "$SESSION_FILE" ] && grep -qF 'dbus-launch' "$SESSION_FILE"; then
     echo "$SESSION_FILE already exists and wraps dbus-launch — skipping."
 else
     echo "Writing $SESSION_FILE ..."
+    # Doesn't exist on a fresh install with no other desktop session installed.
+    sudo mkdir -p "$(dirname "$SESSION_FILE")"
     sudo tee "$SESSION_FILE" > /dev/null <<'EOF'
 [Desktop Entry]
 Name=dwm
