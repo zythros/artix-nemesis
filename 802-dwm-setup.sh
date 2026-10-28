@@ -9,8 +9,10 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #             wrapper (dmenu-desktop, what Mod+d runs), then clones
 #             github.com/zythros/dwm, builds from source, installs, writes a
 #             LightDM xsessions entry, disables screen blanking/DPMS
-#             (~/.xprofile), writes ~/.dwm/keybindings.txt, and makes
-#             JetBrains Mono Nerd Font the default "monospace" font.
+#             (~/.xprofile), writes ~/.dwm/keybindings.txt, makes
+#             JetBrains Mono Nerd Font the default "monospace" font, and
+#             sets a system-wide dark preference that GTK, Qt, browsers and
+#             Electron apps follow.
 #             Needs Xorg + LightDM already installed (800-base-desktop.sh).
 ##################################################################################################################################
 #
@@ -22,11 +24,12 @@ script_start "Setting up dwm + dmenu"
 
 ##################################################################################################################################
 # 1. Build + runtime dependencies (alacritty, j4-dmenu-desktop; xset for 8;
-#    JetBrains Mono Nerd Font for 10)
+#    JetBrains Mono Nerd Font for 10; dark theme + portal for 11)
 ##################################################################################################################################
 
 section "Dependencies"
-ensure_pkgs base-devel libx11 libxft libxinerama alacritty j4-dmenu-desktop xorg-xset ttf-jetbrains-mono-nerd
+ensure_pkgs base-devel libx11 libxft libxinerama alacritty j4-dmenu-desktop xorg-xset ttf-jetbrains-mono-nerd \
+    gnome-themes-extra dconf xdg-desktop-portal xdg-desktop-portal-gtk
 
 ##################################################################################################################################
 # 2. mullvad-browser (Mod+m) — only if Chaotic AUR is already enabled
@@ -257,6 +260,74 @@ else
 fi
 
 ##################################################################################################################################
+# 11. Dark mode by default
+#     dwm has no settings daemon, so set the preference everywhere apps look:
+#       - gsettings color-scheme (dconf) -> xdg-desktop-portal-gtk serves it as
+#         org.freedesktop.appearance color-scheme: Firefox, Chromium,
+#         Electron and libadwaita apps follow it
+#       - GTK3/4 settings.ini prefer-dark, GTK2 ~/.gtkrc-2.0 (Adwaita-dark)
+#       - Qt: the gtk3 platform theme (built into qt5/qt6-base) follows GTK
+#     Existing theme choices are kept: only missing files/keys are added.
+##################################################################################################################################
+
+section "Dark mode"
+
+# gsettings needs a session bus to reach dconf; not there over ssh or a TTY
+gset() {
+    if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+        gsettings "$@"
+    else
+        dbus-run-session -- gsettings "$@"
+    fi
+}
+if gset set org.gnome.desktop.interface color-scheme prefer-dark \
+    && [ "$(gset get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'" ]; then
+    ok "gsettings color-scheme = prefer-dark (portal: browsers, Electron, libadwaita)."
+else
+    err "could not set gsettings color-scheme — is dconf installed?"
+fi
+if [ "$(gset get org.gnome.desktop.interface gtk-theme)" = "'Adwaita'" ]; then
+    gset set org.gnome.desktop.interface gtk-theme Adwaita-dark && echo "gsettings gtk-theme = Adwaita-dark."
+fi
+
+# GTK3/4: create (GTK3 also gets Adwaita-dark; GTK4 has no installable
+# themes), or add prefer-dark to an existing file
+for v in 3.0 4.0; do
+    GTK_INI="$HOME/.config/gtk-$v/settings.ini"
+    if [ ! -f "$GTK_INI" ]; then
+        mkdir -p "$(dirname "$GTK_INI")"
+        {
+            echo '[Settings]'
+            [ "$v" = 3.0 ] && echo 'gtk-theme-name=Adwaita-dark'
+            echo 'gtk-application-prefer-dark-theme=1'
+        } > "$GTK_INI"
+        ok "Wrote $GTK_INI (dark)."
+    elif ! grep -q '^gtk-application-prefer-dark-theme' "$GTK_INI"; then
+        sed -i '/^\[Settings\]/a gtk-application-prefer-dark-theme=1' "$GTK_INI"
+        ok "Added prefer-dark to $GTK_INI (theme left as is)."
+    else
+        echo "$GTK_INI already sets prefer-dark — skipping."
+    fi
+done
+
+# GTK2: only if the user has no gtkrc yet
+GTKRC2="$HOME/.gtkrc-2.0"
+if [ -f "$GTKRC2" ]; then
+    echo "$GTKRC2 exists — leaving it alone."
+else
+    echo 'gtk-theme-name="Adwaita-dark"' > "$GTKRC2"
+    ok "Wrote $GTKRC2 (Adwaita-dark)."
+fi
+
+# Qt: gtk3 platform theme, unless something (e.g. /etc/environment) set one
+if grep -qF 'QT_QPA_PLATFORMTHEME' "$XPROFILE" 2>/dev/null; then
+    echo "$XPROFILE already handles QT_QPA_PLATFORMTHEME — skipping."
+else
+    echo '[ -z "$QT_QPA_PLATFORMTHEME" ] && export QT_QPA_PLATFORMTHEME=gtk3  # Qt follows GTK dark theme (802-dwm-setup.sh)' >> "$XPROFILE"
+    ok "Qt set to follow GTK in $XPROFILE (unless already set system-wide)."
+fi
+
+##################################################################################################################################
 
 script_done
 echo "dwm is now available as a session in LightDM."
@@ -264,5 +335,6 @@ echo "Keybindings: $KEYBINDINGS_FILE"
 echo "Source:      $DWM_SRC, $DMENU_SRC"
 echo "Mod+d:       $WRAPPER (j4-dmenu-desktop + zythros dmenu, dwm bar colours)"
 echo "Font:        $FONT_CONF (monospace -> JetBrainsMono Nerd Font Mono)"
+echo "Dark mode:   gsettings color-scheme + GTK2/3/4 + Qt (takes effect at next login / app start)"
 echo "To rebuild:  make -C $DWM_SRC clean && make -C $DWM_SRC && sudo make -C $DWM_SRC install"
 echo
