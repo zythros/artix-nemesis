@@ -2,11 +2,13 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
-# Menu      : Build and install dwm window manager
+# Menu      : Build and install dwm + dmenu (Mod+d app launcher)
 # Group     : core
 # Purpose   : Set up dwm as a desktop environment option.
-#             Clones github.com/zythros/dwm, builds from source, installs,
-#             writes a LightDM xsessions entry, disables screen blanking/DPMS
+#             Builds github.com/zythros/dmenu and installs a j4-dmenu-desktop
+#             wrapper (dmenu-desktop, what Mod+d runs), then clones
+#             github.com/zythros/dwm, builds from source, installs, writes a
+#             LightDM xsessions entry, disables screen blanking/DPMS
 #             (~/.xprofile), and writes ~/.dwm/keybindings.txt.
 #             Needs Xorg + LightDM already installed (800-base-desktop.sh).
 ##################################################################################################################################
@@ -15,14 +17,14 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-script_start "Setting up dwm"
+script_start "Setting up dwm + dmenu"
 
 ##################################################################################################################################
-# 1. Build + runtime dependencies (alacritty, dmenu; xset for 6b)
+# 1. Build + runtime dependencies (alacritty, j4-dmenu-desktop; xset for 8)
 ##################################################################################################################################
 
 section "Dependencies"
-ensure_pkgs base-devel libx11 libxft libxinerama alacritty dmenu xorg-xset
+ensure_pkgs base-devel libx11 libxft libxinerama alacritty j4-dmenu-desktop xorg-xset
 
 ##################################################################################################################################
 # 2. mullvad-browser (Mod+m) — only if Chaotic AUR is already enabled
@@ -43,25 +45,67 @@ else
 fi
 
 ##################################################################################################################################
-# 3. Clone or update fork
+# 3. dmenu — zythros fork (-c center, -l grid), replaces any pacman dmenu
 ##################################################################################################################################
 
-section "dwm source"
+section "dmenu (zythros fork)"
+
+if pacman -Qi dmenu &>/dev/null; then
+    echo "Removing pacman dmenu (replaced by the zythros fork) ..."
+    if sudo pacman -Rns --noconfirm dmenu; then
+        ok "Pacman dmenu removed."
+    else
+        err "could not remove pacman dmenu — the fork's install may be shadowed"
+    fi
+fi
+
+DMENU_SRC="$HOME/.local/src/dmenu"
+git_sync https://github.com/zythros/dmenu.git "$DMENU_SRC" || die "no dmenu source — nothing to build"
+echo
+make_install "$DMENU_SRC" || die "dmenu build/install failed"
+
+##################################################################################################################################
+# 4. dmenu-desktop wrapper — what dwm's Mod+d runs (dmenucmd in zythros/dwm config.h)
+#    j4-dmenu-desktop lists apps by .desktop display name. A wrapper is the
+#    cleanest way to pass its --dmenu="..." flag (no shell escaping inside a C
+#    string array), and /usr/local/bin is on dwm's PATH whatever the login
+#    shell, so config.h can name it without an absolute path.
+##################################################################################################################################
+
+echo
+WRAPPER="/usr/local/bin/dmenu-desktop"
+echo "Writing $WRAPPER ..."
+# Colors match the dwm bar (zythros/dwm config.h): col_gray1/col_gray3 for
+# normal, col_cyan/col_gray4 for the selected entry.
+sudo tee "$WRAPPER" > /dev/null <<'EOF' || die "could not write $WRAPPER"
+#!/bin/bash
+exec j4-dmenu-desktop --dmenu="dmenu -i -c -l 8 -fn 'monospace:size=12' -nb '#222222' -nf '#bbbbbb' -sb '#005577' -sf '#eeeeee'"
+EOF
+sudo chmod 755 "$WRAPPER"
+ok "Wrapper written."
+
+# The old 820-dmenu-setup.sh put the wrapper in ~/.local/bin and patched an
+# absolute path into dwm's config.h. Remove its copy so only one exists.
+OLD_WRAPPER="$HOME/.local/bin/dmenu-desktop"
+if grep -qs 'exec j4-dmenu-desktop' "$OLD_WRAPPER"; then
+    rm -f "$OLD_WRAPPER" && echo "Removed old wrapper $OLD_WRAPPER."
+fi
+
+##################################################################################################################################
+# 5. dwm — clone or update fork, build and install
+##################################################################################################################################
+
+section "dwm"
 DWM_SRC="$HOME/.local/src/dwm"
 
-# Drop local patches (e.g. 820's dmenucmd) so the pull can't conflict; 820 re-applies its own
+# Drop local edits (e.g. the old 820 dmenucmd patch) so the pull can't conflict
 [ -d "$DWM_SRC/.git" ] && git -C "$DWM_SRC" checkout config.h
 git_sync https://github.com/zythros/dwm.git "$DWM_SRC" || die "no dwm source — nothing to build"
-
-##################################################################################################################################
-# 4. Build and install
-##################################################################################################################################
-
 echo
 make_install "$DWM_SRC" || die "dwm build/install failed"
 
 ##################################################################################################################################
-# 5. Ensure dbus is installed — dwm doesn't start a session bus itself, and
+# 6. Ensure dbus is installed — dwm doesn't start a session bus itself, and
 #    apps like flameshot silently fail (or don't appear at all via rofi/dmenu)
 #    without one. See: dbus-launch wraps the session below.
 ##################################################################################################################################
@@ -72,7 +116,7 @@ if ! command -v dbus-launch &>/dev/null; then
 fi
 
 ##################################################################################################################################
-# 6. Create LightDM xsessions entry (idempotent — rewritten if dbus-launch missing)
+# 7. Create LightDM xsessions entry (idempotent — rewritten if dbus-launch missing)
 ##################################################################################################################################
 
 echo
@@ -99,7 +143,7 @@ EOF
 fi
 
 ##################################################################################################################################
-# 6b. Disable screen blanking / DPMS in the dwm session
+# 8. Disable screen blanking / DPMS in the dwm session
 #     X defaults to blanking after 10 min and DPMS-off after that; dwm has no
 #     power settings of its own. LightDM's Xsession sources ~/.xprofile at login.
 #     Not done via xorg.conf.d ServerFlags: 880's 99-nvidia-flags.conf already
@@ -116,7 +160,7 @@ else
 fi
 
 ##################################################################################################################################
-# 7. Write ~/.dwm/keybindings.txt
+# 9. Write ~/.dwm/keybindings.txt
 ##################################################################################################################################
 
 echo
@@ -184,6 +228,7 @@ ok "Keybindings file written."
 script_done
 echo "dwm is now available as a session in LightDM."
 echo "Keybindings: $KEYBINDINGS_FILE"
-echo "Source:      $DWM_SRC"
+echo "Source:      $DWM_SRC, $DMENU_SRC"
+echo "Mod+d:       $WRAPPER (j4-dmenu-desktop + zythros dmenu, dwm bar colours)"
 echo "To rebuild:  make -C $DWM_SRC clean && make -C $DWM_SRC && sudo make -C $DWM_SRC install"
 echo

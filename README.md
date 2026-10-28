@@ -20,7 +20,7 @@ cd artix-nemesis
 ```
 
 Pick scripts with TAB, then press ENTER. They run in number order. For a
-minimal desktop, run **800 → 802 → 820**, then reboot and choose the dwm
+minimal desktop, run **800 → 802**, then reboot and choose the dwm
 session in LightDM.
 
 ## Scripts
@@ -31,10 +31,9 @@ session in LightDM.
 |---|---|---|
 | `800-base-desktop.sh` | core | Xorg, LightDM and D-Bus. Skip it if your install already boots to a login screen |
 | `801-chaotic-aur-setup.sh` | optional | Chaotic AUR repo + yay; also adds Arch `[extra]` |
-| `802-dwm-setup.sh` | core | Builds and installs zythros/dwm, adds the LightDM session, turns off screen blanking |
+| `802-dwm-setup.sh` | core | Builds zythros/dwm and zythros/dmenu (Mod+d launcher via j4-dmenu-desktop), adds the LightDM session, turns off screen blanking |
 | `803-apps-setup.sh` | core | Apps from the `APPS` list at the top of the script, plus their config fixups |
 | `810-wallpaper-setup.sh` | core | `wallpaper.sh` cycler + zythros/wallpaper images (Mod+w / Mod+Shift+w) |
-| `820-dmenu-setup.sh` | core | Builds zythros/dmenu and points dwm's Mod+d at it via j4-dmenu-desktop |
 | `830-slstatus-setup.sh` | core | Builds zythros/slstatus for the dwm bar |
 | `836-printer-setup.sh` | hardware | CUPS, Avahi, SANE, plus a network Epson ET-3950 |
 | `837-rgb-setup.sh` | hardware | OpenRGB, with a static colour applied at every boot |
@@ -55,9 +54,7 @@ printer IP and model, RGB colour and zones, GPU model strings.
 
 - 800 must come before 802, because 802 needs Xorg and LightDM.
 - 801 must come before 802 if you want mullvad-browser on Mod+m (Chaotic AUR only).
-- 802 must come before 810, 820 and 830, which change or extend the dwm setup.
-- 820 patches dwm's `config.h` and rebuilds dwm. Re-running 802 resets that
-  patch, so run 820 again after it.
+- 802 must come before 810 and 830, which extend the dwm setup.
 - 890 must come before 895 if you want GPU passthrough.
 - 836 needs 801 for the Epson driver, which is AUR-only and pre-built in
   Chaotic AUR. Without 801, everything else in 836 still installs.

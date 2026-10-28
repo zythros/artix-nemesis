@@ -5,7 +5,7 @@
 #
 #   Usage:  ./menu-fzf.sh                 pick scripts with fzf (TAB to multi-select)
 #           ./menu-fzf.sh --list          print the menu and exit
-#           ./menu-fzf.sh --run 802 820   run those scripts in order, no prompts
+#           ./menu-fzf.sh --run 800 802   run those scripts in order, no prompts
 #
 #   Exits non-zero if any script failed.
 ##################################################################################################################################

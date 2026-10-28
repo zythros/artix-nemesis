@@ -129,7 +129,7 @@ WALLPAPER_LINE='~/.local/bin/wallpaper.sh restore &'
 
 # Ensure ~/.local/bin is in PATH for the X session. LightDM sources ~/.xprofile
 # unconditionally regardless of login shell, so this covers fish, bash, sh, etc.
-# Without this, dwm cannot find binaries like dmenu-desktop or wallpaper.sh via
+# Without this, dwm cannot find binaries in ~/.local/bin like wallpaper.sh via
 # execvp when the login shell is anything other than fish (fish exports its PATH
 # via a special fish --login hook in LightDM's Xsession script).
 PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'

@@ -61,7 +61,7 @@ EOF
     ok "[chaotic-aur] added to $PACMAN_CONF"
 fi
 
-# Also set up Arch [extra] here so that scripts running after 801 (803, 802, 820, etc.)
+# Also set up Arch [extra] here so that scripts running after 801 (802, 803, etc.)
 # can install packages like freecad, libx11, libxft without depending on 880 having run.
 ensure_arch_extra
 
