@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Install preferred apps
 # Purpose   : Install base GUI applications.
 #             Edit the APPS list below — comment out any line to skip that app.
 #             Packages are sourced from official Artix/Arch repos only — no AUR
@@ -22,7 +23,7 @@ APPS=(
     kdenlive             # video editor
     krename              # batch file renamer
     flameshot            # screenshot tool with annotation
-    rofi                 # app launcher (bound to Mod+d in dwm's config.h)
+    rofi                 # app launcher (bound to Mod+Shift+d in dwm's config.h)
     cifs-utils           # SMB/CIFS share mounting (fstab + manual)
     connman-gtk          # GUI for connman (already installed/running on Artix by default; standalone window, no systray needed)
     python-yaml          # dep: blood-pressure-tracker

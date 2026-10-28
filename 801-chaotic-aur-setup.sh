@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Add Chaotic AUR pre-built repo to pacman + install yay (optional — nothing else here requires it)
 # Purpose   : Add the Chaotic AUR pre-built repository to pacman and install yay.
 #             Chaotic AUR provides pre-built AUR packages (e.g. bridge-utils, many others).
 #             https://aur.chaotic.cx

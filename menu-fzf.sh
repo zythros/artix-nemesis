@@ -17,25 +17,16 @@ if ! command -v fzf &>/dev/null; then
     sudo pacman --config "$NOHOOK_CONF" -S --noconfirm fzf || { echo "Could not install fzf — aborting" >&2; exit 1; }
 fi
 
-# Pairs: script filename, description (in desired run order)
-ENTRIES=(
-    "801-chaotic-aur-setup.sh"  "Add Chaotic AUR pre-built repo to pacman + install yay (optional — nothing else here requires it)"
-    "802-dwm-setup.sh"          "Build and install dwm window manager"
-    "803-apps-setup.sh"         "Install preferred apps"
-    "810-wallpaper-setup.sh"    "Set up wallpaper cycling system"
-    "820-dmenu-setup.sh"        "Build dmenu; wire j4-dmenu-desktop into dwm"
-    "830-slstatus-setup.sh"     "Build slstatus; write CPU/RAM/datetime to DWM bar"
-    "836-printer-setup.sh"      "Install CUPS + Epson ET-3950 driver; add printer at 10.0.100.103"
-    "837-rgb-setup.sh"          "Install OpenRGB; set all RGB hardware to #fbba2b at boot"
-    "840-snapper-setup.sh"      "Configure Snapper for BTRFS snapshots"
-    "861-mpd-setup.sh"          "Install MPD + rmpc TUI client; enable system service"
-    "870-vm-clipboard-setup.sh" "SPICE clipboard sharing (VM guests only)"
-    "880-nvidia-bm-setup.sh"    "NVIDIA drivers — bare metal (dual GPU)"
-    "881-nvidia-vm-setup.sh"    "NVIDIA drivers — VM guest (3090 passthrough)"
-    "890-vfio-passthrough.sh"   "Configure VFIO passthrough for RTX 3090"
-    "895-virt-manager-setup.sh" "Install virt-manager / QEMU-KVM"
-    "896-distrobox-setup.sh"    "Install podman + distrobox; enable shared-root mount service"
-)
+# Pairs: script filename, description — built from each numbered script's
+# "# Menu      : <description>" header line, in filename (= run) order.
+# Scripts without that line (e.g. 897) are deliberately left out of the menu.
+ENTRIES=()
+for path in "$SCRIPT_DIR"/[0-9][0-9][0-9]-*.sh; do
+    desc="$(sed -n 's/^# Menu *: //p' "$path" | head -1)"
+    [ -n "$desc" ] && ENTRIES+=("$(basename "$path")" "$desc")
+done
+
+[ ${#ENTRIES[@]} -eq 0 ] && { echo "No scripts with a '# Menu' header found in $SCRIPT_DIR" >&2; exit 1; }
 
 ##################################################################################################################################
 # Build menu lines and prompt with fzf

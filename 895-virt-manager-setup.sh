@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Install virt-manager / QEMU-KVM
 # Purpose   : Install and configure virt-manager / QEMU-KVM on the host.
 #             - Installs all required packages
 #             - Enables and starts libvirtd

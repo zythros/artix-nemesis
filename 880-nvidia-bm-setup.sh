@@ -3,6 +3,7 @@ set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : NVIDIA drivers — bare metal (dual GPU)
 # Purpose   : Configure Xorg and kernel for dual NVIDIA GPUs
 #             Fixes modesetting/glamor crash that prevents SDDM from starting
 ##################################################################################################################################

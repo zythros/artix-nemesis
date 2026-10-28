@@ -2,6 +2,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : SPICE clipboard sharing (VM guests only)
 # Purpose   : Set up host-VM clipboard sharing (copy/paste) via SPICE
 #             Installs spice-vdagent and qemu-guest-agent for QEMU/KVM VMs
 #             Artix/OpenRC port — skips automatically on bare metal

@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Configure Snapper for BTRFS snapshots
 # Purpose   : Install and configure Snapper for BTRFS snapshots (can be run standalone)
 ##################################################################################################################################
 #

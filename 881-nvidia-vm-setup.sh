@@ -3,6 +3,7 @@ set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : NVIDIA drivers — VM guest (3090 passthrough)
 # Purpose   : Install NVIDIA drivers inside a VM with a passed-through RTX 3090 (GA102).
 #             Only one GPU is visible to the guest, so no Xorg pinning or dual-GPU
 #             workarounds are needed — just driver install + nouveau blacklist.

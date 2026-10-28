@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Install CUPS + Epson ET-3950 driver; add printer at 10.0.100.103
 # Purpose   : Install CUPS + Epson ET-3950 driver (ESCPR2) + Avahi for network
 #             printer discovery.  After running, add the printer via the CUPS
 #             web UI at http://localhost:631.

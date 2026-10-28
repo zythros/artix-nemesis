@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Install MPD + rmpc TUI client; enable system service
 # Purpose   : Install MPD (Music Player Daemon) + rmpc TUI client; configure
 #             MPD as a system service (OpenRC) running as the desktop user so
 #             it can reach the PipeWire/PulseAudio socket.

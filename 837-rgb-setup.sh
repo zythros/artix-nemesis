@@ -2,6 +2,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Install OpenRGB; set all RGB hardware to #fbba2b at boot
 # Purpose   : Install OpenRGB and set all RGB hardware (fans, RAM, GPU, keyboard) to a static color at boot.
 #             Uses /etc/local.d/rgb.start (OpenRC local service) to apply the color on every boot.
 #             i2c-dev is loaded in the boot script so OpenRGB can reach RAM RGB controllers over SMBus.

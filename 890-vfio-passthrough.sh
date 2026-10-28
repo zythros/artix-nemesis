@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Configure VFIO passthrough for RTX 3090
 # Purpose   : Configure VFIO passthrough for the secondary GPU — isolates it from the nvidia driver
 #             so it can be assigned exclusively to a VM via virt-manager / QEMU.
 ##################################################################################################################################

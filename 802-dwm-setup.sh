@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Build and install dwm window manager
 # Purpose   : Set up dwm as a desktop environment option.
 #             Clones github.com/zythros/dwm, builds from source, installs,
 #             writes a LightDM xsessions entry, disables screen blanking/DPMS

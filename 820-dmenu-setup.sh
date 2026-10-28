@@ -3,6 +3,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
+# Menu      : Build dmenu; wire j4-dmenu-desktop into dwm
 # Purpose   : Build dmenu from zythros fork; wire j4-dmenu-desktop into dwm
 #
 # Artix/dwm differences vs arch-nemesis 820:
