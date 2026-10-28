@@ -145,9 +145,11 @@ mkdir -p "$HOME/.local/bin"
 
 echo
 echo "Writing $WRAPPER ..."
+# Colors match the dwm bar (zythros/dwm config.h): col_gray1/col_gray3 for
+# normal, col_cyan/col_gray4 for the selected entry.
 cat > "$WRAPPER" <<'EOF'
 #!/bin/bash
-exec j4-dmenu-desktop --dmenu="dmenu -i -c -l 8 -fn 'monospace:size=12' -nb '#0a0a0a' -nf '#cdd6f4' -sb '#99f6e4' -sf '#0a0a0a'"
+exec j4-dmenu-desktop --dmenu="dmenu -i -c -l 8 -fn 'monospace:size=12' -nb '#222222' -nf '#bbbbbb' -sb '#005577' -sf '#eeeeee'"
 EOF
 chmod +x "$WRAPPER"
 
@@ -241,7 +243,7 @@ echo "j4-dmenu-desktop installed:"
 echo "  Reads .desktop files — shows apps by display name"
 echo
 echo "Launcher wrapper: $WRAPPER"
-echo "  j4-dmenu-desktop with centered grid style (-c -l 8) and dark theme"
+echo "  j4-dmenu-desktop with centered grid style (-c -l 8), dwm bar colors"
 echo
 echo "dwm rebuilt: Mod+p / Mod+d → dmenu-desktop (j4 + zythros fork)"
 echo
