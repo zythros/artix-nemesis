@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
@@ -28,30 +27,14 @@ POOL_NAME="vmssd"
 
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
-
-artix_pacman_nohook_setup
-sudo pacman --config "$NOHOOK_CONF" -Sy
+script_start "Setting up virt-manager / QEMU-KVM"
+pkg_sync
 
 ##################################################################################################################################
 # 1. Install packages
 ##################################################################################################################################
 
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Installing virt-manager / QEMU-KVM packages"
-echo "########################################################################"
-tput sgr0
-echo
+section "Packages"
 
 # qemu-desktop  : QEMU with x86_64 system emulation + common device support
 # libvirt       : hypervisor abstraction daemon (manages QEMU, networking, storage)
@@ -80,74 +63,40 @@ PACKAGES=(
 # exfatprogs (pulled by libguestfs) conflicts with exfat-utils — remove it first if present
 if pacman -Q exfat-utils &>/dev/null; then
     echo "Removing conflicting exfat-utils ..."
-    sudo pacman --config "$NOHOOK_CONF" -Rns --noconfirm exfat-utils
+    sudo pacman --config "$NOHOOK_CONF" -Rns --noconfirm exfat-utils || err "could not remove exfat-utils"
 fi
 
-if sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed "${PACKAGES[@]}"; then
-    tput setaf 2
-    echo "Packages installed."
-    tput sgr0
-else
-    tput setaf 1
-    echo "ERROR: pacman failed — aborting. Fix the conflict above and re-run."
-    tput sgr0
-    exit 1
-fi
+ensure_pkgs "${PACKAGES[@]}" || die "packages missing — fix the problem above and re-run"
 
 ##################################################################################################################################
 # 2. Enable and start libvirtd
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "########################################################################"
-echo "################### Enabling libvirtd"
-echo "########################################################################"
-tput sgr0
-echo
+section "Enabling libvirtd"
 
-sudo rc-update add libvirtd default
-sudo rc-service libvirtd start
+enable_service libvirtd
 
 # virtlogd handles VM console/serial logs — runs as a daemon under OpenRC
-sudo rc-update add virtlogd default
-sudo rc-service virtlogd start
-
-tput setaf 2
-echo "libvirtd enabled and running."
-tput sgr0
+enable_service virtlogd
 
 ##################################################################################################################################
 # 3. Add user to libvirt and kvm groups
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "########################################################################"
-echo "################### Adding $USER to libvirt + kvm groups"
-echo "########################################################################"
-tput sgr0
-echo
+section "Adding $USER to libvirt + kvm groups"
 
-sudo usermod -aG libvirt "$USER"
-sudo usermod -aG kvm "$USER"
-
-tput setaf 2
-echo "User $USER added to: libvirt, kvm"
-echo "(Group membership takes effect after next login or 'newgrp libvirt')"
-tput sgr0
+if sudo usermod -aG libvirt,kvm "$USER"; then
+    ok "User $USER added to: libvirt, kvm"
+    ok "(Group membership takes effect after next login or 'newgrp libvirt')"
+else
+    err "could not add $USER to the libvirt/kvm groups"
+fi
 
 ##################################################################################################################################
 # 4. Activate the default NAT network
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "########################################################################"
-echo "################### Activating default libvirt NAT network"
-echo "########################################################################"
-tput sgr0
-echo
+section "Activating default libvirt NAT network"
 
 # Define the default network if it doesn't exist yet
 if ! sudo virsh net-info default &>/dev/null; then
@@ -165,29 +114,25 @@ if ! sudo virsh net-info default &>/dev/null; then
   </ip>
 </network>
 NETXML
-)
-    tput setaf 2
-    echo "Default network defined."
-    tput sgr0
+) && ok "Default network defined." || err "could not define the default libvirt network"
 else
     echo "Default network already defined."
 fi
 
 # Start and autostart the default network
 if sudo virsh net-info default | grep -q "Active:.*no"; then
-    sudo virsh net-start default
-    tput setaf 2
-    echo "Default network started."
-    tput sgr0
+    if sudo virsh net-start default; then
+        ok "Default network started."
+    else
+        err "could not start the default libvirt network"
+    fi
 else
     echo "Default network already active."
 fi
 
 if sudo virsh net-info default | grep -q "Autostart:.*no"; then
-    sudo virsh net-autostart default
-    tput setaf 2
-    echo "Default network set to autostart."
-    tput sgr0
+    sudo virsh net-autostart default && ok "Default network set to autostart." \
+        || err "could not set the default libvirt network to autostart"
 else
     echo "Default network autostart already enabled."
 fi
@@ -196,48 +141,36 @@ fi
 # 5. Register VM_DISK_DIR as a libvirt storage pool
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "########################################################################"
-echo "################### Registering storage pool: $POOL_NAME -> $VM_DISK_DIR"
-echo "########################################################################"
-tput sgr0
-echo
+section "Registering storage pool: $POOL_NAME -> $VM_DISK_DIR"
 
 if [ ! -d "$VM_DISK_DIR" ]; then
-    tput setaf 1
-    echo "WARNING: $VM_DISK_DIR does not exist or is not mounted. Skipping pool registration."
+    warn "$VM_DISK_DIR does not exist or is not mounted — storage pool '$POOL_NAME' not registered"
+    _c setaf 3
     echo "Mount your SSD first, then run:"
     echo "  sudo virsh pool-define-as $POOL_NAME dir - - - - $VM_DISK_DIR"
     echo "  sudo virsh pool-build $POOL_NAME"
     echo "  sudo virsh pool-start $POOL_NAME"
     echo "  sudo virsh pool-autostart $POOL_NAME"
-    tput sgr0
+    _c sgr0
 else
     if sudo virsh pool-info "$POOL_NAME" &>/dev/null; then
         echo "Storage pool '$POOL_NAME' already defined."
     else
-        sudo virsh pool-define-as "$POOL_NAME" dir - - - - "$VM_DISK_DIR"
-        tput setaf 2
-        echo "Storage pool '$POOL_NAME' defined."
-        tput sgr0
+        sudo virsh pool-define-as "$POOL_NAME" dir - - - - "$VM_DISK_DIR" \
+            && ok "Storage pool '$POOL_NAME' defined." || err "could not define storage pool '$POOL_NAME'"
     fi
 
     if sudo virsh pool-info "$POOL_NAME" | grep -q "State:.*running"; then
         echo "Storage pool '$POOL_NAME' already running."
     else
         sudo virsh pool-build "$POOL_NAME" 2>/dev/null || true
-        sudo virsh pool-start "$POOL_NAME"
-        tput setaf 2
-        echo "Storage pool '$POOL_NAME' started."
-        tput sgr0
+        sudo virsh pool-start "$POOL_NAME" \
+            && ok "Storage pool '$POOL_NAME' started." || err "could not start storage pool '$POOL_NAME'"
     fi
 
     if sudo virsh pool-info "$POOL_NAME" | grep -q "Autostart:.*no"; then
-        sudo virsh pool-autostart "$POOL_NAME"
-        tput setaf 2
-        echo "Storage pool '$POOL_NAME' set to autostart."
-        tput sgr0
+        sudo virsh pool-autostart "$POOL_NAME" \
+            && ok "Storage pool '$POOL_NAME' set to autostart." || err "could not autostart storage pool '$POOL_NAME'"
     else
         echo "Storage pool '$POOL_NAME' autostart already enabled."
     fi
@@ -253,13 +186,7 @@ fi
 # 6. Set virt-manager defaults: UEFI firmware for new VMs
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "########################################################################"
-echo "################### Setting virt-manager default firmware to UEFI"
-echo "########################################################################"
-tput sgr0
-echo
+section "Setting virt-manager default firmware to UEFI"
 
 # virt-manager stores its UI defaults in dconf/gsettings.
 # Setting firmware=uefi makes the New VM wizard pre-select UEFI instead of BIOS.
@@ -271,15 +198,9 @@ GSETTINGS=(gsettings)
 [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && GSETTINGS=(dbus-run-session -- gsettings)
 if "${GSETTINGS[@]}" set org.virt-manager.virt-manager.new-vm firmware uefi 2>/dev/null \
     && [ "$("${GSETTINGS[@]}" get org.virt-manager.virt-manager.new-vm firmware 2>/dev/null)" = "'uefi'" ]; then
-    tput setaf 2
-    echo "virt-manager default firmware set to UEFI."
-    tput sgr0
+    ok "virt-manager default firmware set to UEFI."
 else
-    tput setaf 3
-    echo "WARNING: gsettings not available in this session (running as root or no DBUS session)."
-    echo "Run manually after logging in:"
-    echo "  gsettings set org.virt-manager.virt-manager.new-vm firmware uefi"
-    tput sgr0
+    warn "could not set virt-manager's default firmware — after logging in run: gsettings set org.virt-manager.virt-manager.new-vm firmware uefi"
 fi
 
 # Confirm OVMF firmware files are in place (installed via edk2-ovmf package)
@@ -295,23 +216,14 @@ for candidate in \
     fi
 done
 if [ -n "$OVMF_CODE" ]; then
-    tput setaf 2
-    echo "OVMF firmware found: $OVMF_CODE"
-    tput sgr0
+    ok "OVMF firmware found: $OVMF_CODE"
 else
-    tput setaf 1
-    echo "ERROR: OVMF firmware not found — 'edk2-ovmf' package may not have installed correctly."
-    tput sgr0
+    err "OVMF firmware not found — 'edk2-ovmf' package may not have installed correctly"
 fi
 
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "Installed:"
 for pkg in "${PACKAGES[@]}"; do echo "  - $pkg"; done
 echo
@@ -331,4 +243,3 @@ echo "  4. To attach RTX 3090 (already vfio-bound):"
 echo "       VM Details -> Add Hardware -> PCI Host Device"
 echo "       Select: RTX 3090 (IOMMU group 36: 3f:00.0 + 3f:00.1)"
 echo
-tput sgr0

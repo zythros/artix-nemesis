@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
@@ -15,121 +14,50 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
+script_start "Setting up dwm"
 
 ##################################################################################################################################
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Setting up dwm"
-echo "########################################################################"
-tput sgr0
-echo
-
-artix_pacman_nohook_setup
-
-##################################################################################################################################
-# 1. Install build dependencies
+# 1. Build + runtime dependencies (alacritty, dmenu; xset for 6b)
 ##################################################################################################################################
 
-echo "Installing build dependencies ..."
-sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed base-devel libx11 libxft libxinerama
-
-tput setaf 2
-echo "Build dependencies installed."
-tput sgr0
+section "Dependencies"
+ensure_pkgs base-devel libx11 libxft libxinerama alacritty dmenu xorg-xset
 
 ##################################################################################################################################
-# 2. Install runtime dependencies
-##################################################################################################################################
-
-echo
-echo "Installing runtime dependencies (alacritty, dmenu) ..."
-sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed alacritty dmenu
-
-tput setaf 2
-echo "Runtime dependencies installed."
-tput sgr0
-
-##################################################################################################################################
-# 2b. mullvad-browser (Mod+m) — only if Chaotic AUR is already enabled
-#     mullvad-browser-bin isn't in the official repos. Chaotic AUR stays
-#     opt-in (801), so this never adds it — just skips when it's absent.
+# 2. mullvad-browser (Mod+m) — only if Chaotic AUR is already enabled
+#    mullvad-browser-bin isn't in the official repos. Chaotic AUR stays
+#    opt-in (801), so this never adds it — just skips when it's absent.
 ##################################################################################################################################
 
 echo
 if pacman -Q mullvad-browser-bin &>/dev/null; then
     echo "mullvad-browser already installed."
 elif grep -q '^\[chaotic-aur\]' /etc/pacman.conf; then
-    echo "Installing mullvad-browser-bin (Chaotic AUR) ..."
-    if pkg_install mullvad-browser-bin; then
-        tput setaf 2
-        echo "mullvad-browser installed."
-        tput sgr0
-    else
-        tput setaf 3
-        echo "WARNING: mullvad-browser-bin install failed — Mod+m won't launch anything."
-        tput sgr0
-    fi
+    ensure_pkgs --optional mullvad-browser-bin || warn "Mod+m won't launch anything without mullvad-browser-bin"
 else
-    tput setaf 3
+    _c setaf 3
     echo "Chaotic AUR not enabled — skipping mullvad-browser (Mod+m won't launch anything)."
     echo "To get it: run 801-chaotic-aur-setup.sh, then re-run this script."
-    tput sgr0
+    _c sgr0
 fi
 
 ##################################################################################################################################
 # 3. Clone or update fork
 ##################################################################################################################################
 
-echo
+section "dwm source"
 DWM_SRC="$HOME/.local/src/dwm"
 
-if [ -d "$DWM_SRC/.git" ]; then
-    echo "dwm source found at $DWM_SRC — resetting config.h and pulling latest ..."
-    git -C "$DWM_SRC" checkout config.h
-    git -C "$DWM_SRC" pull
-else
-    echo "Cloning github.com/zythros/dwm to $DWM_SRC ..."
-    mkdir -p "$(dirname "$DWM_SRC")"
-    git clone https://github.com/zythros/dwm.git "$DWM_SRC"
-fi
-
-if [ ! -d "$DWM_SRC/.git" ]; then
-    tput setaf 1
-    echo "ERROR: git clone failed — check internet connection"
-    tput sgr0
-    exit 1
-fi
-
-tput setaf 2
-echo "Source ready."
-tput sgr0
+# Drop local patches (e.g. 820's dmenucmd) so the pull can't conflict; 820 re-applies its own
+[ -d "$DWM_SRC/.git" ] && git -C "$DWM_SRC" checkout config.h
+git_sync https://github.com/zythros/dwm.git "$DWM_SRC" || die "no dwm source — nothing to build"
 
 ##################################################################################################################################
 # 4. Build and install
 ##################################################################################################################################
 
 echo
-echo "Building dwm ..."
-make -C "$DWM_SRC" clean
-make -C "$DWM_SRC"
-
-echo "Installing dwm ..."
-sudo make -C "$DWM_SRC" install
-
-tput setaf 2
-echo "dwm installed."
-tput sgr0
+make_install "$DWM_SRC" || die "dwm build/install failed"
 
 ##################################################################################################################################
 # 5. Ensure dbus is installed — dwm doesn't start a session bus itself, and
@@ -139,11 +67,7 @@ tput sgr0
 
 if ! command -v dbus-launch &>/dev/null; then
     echo
-    echo "Installing dbus (provides dbus-launch) ..."
-    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed dbus
-    tput setaf 2
-    echo "dbus installed."
-    tput sgr0
+    ensure_pkgs dbus
 fi
 
 ##################################################################################################################################
@@ -159,16 +83,18 @@ else
     echo "Writing $SESSION_FILE ..."
     # Doesn't exist on a fresh install with no other desktop session installed.
     sudo mkdir -p "$(dirname "$SESSION_FILE")"
-    sudo tee "$SESSION_FILE" > /dev/null <<'EOF'
+    if sudo tee "$SESSION_FILE" > /dev/null <<'EOF'
 [Desktop Entry]
 Name=dwm
 Comment=Dynamic Window Manager
 Exec=dbus-launch --exit-with-session dwm
 Type=Application
 EOF
-    tput setaf 2
-    echo "Session entry created (dwm now runs under a D-Bus session — fixes flameshot and other D-Bus-dependent apps)."
-    tput sgr0
+    then
+        ok "Session entry created (dwm now runs under a D-Bus session — fixes flameshot and other D-Bus-dependent apps)."
+    else
+        err "could not write $SESSION_FILE — dwm won't appear in LightDM"
+    fi
 fi
 
 ##################################################################################################################################
@@ -180,15 +106,12 @@ fi
 ##################################################################################################################################
 
 echo
-sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed xorg-xset
 XPROFILE="$HOME/.xprofile"
 if grep -qF 'xset s off -dpms' "$XPROFILE" 2>/dev/null; then
     echo "$XPROFILE already disables screen blanking — skipping."
 else
     echo 'xset s off -dpms  # no screen blanking / monitor sleep (802-dwm-setup.sh)' >> "$XPROFILE"
-    tput setaf 2
-    echo "Screen blanking disabled in $XPROFILE (takes effect at next login)."
-    tput sgr0
+    ok "Screen blanking disabled in $XPROFILE (takes effect at next login)."
 fi
 
 ##################################################################################################################################
@@ -253,21 +176,13 @@ System
   Mod + Shift + q       quit dwm
 EOF
 
-tput setaf 2
-echo "Keybindings file written."
-tput sgr0
+ok "Keybindings file written."
 
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "dwm is now available as a session in LightDM."
 echo "Keybindings: $KEYBINDINGS_FILE"
 echo "Source:      $DWM_SRC"
 echo "To rebuild:  make -C $DWM_SRC clean && make -C $DWM_SRC && sudo make -C $DWM_SRC install"
 echo
-tput sgr0

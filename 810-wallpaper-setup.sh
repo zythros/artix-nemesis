@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
@@ -16,42 +15,13 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
-
-##################################################################################################################################
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Setting up wallpaper system"
-echo "########################################################################"
-tput sgr0
-echo
-
-artix_pacman_nohook_setup
+script_start "Setting up wallpaper system"
 
 ##################################################################################################################################
 # 1. Install feh
 ##################################################################################################################################
 
-if ! command -v feh &>/dev/null; then
-    tput setaf 3
-    echo "Installing feh ..."
-    tput sgr0
-    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed feh
-fi
-
-tput setaf 2
-echo "feh ready."
-tput sgr0
+ensure_pkgs feh
 
 ##################################################################################################################################
 # 2. Install wallpaper.sh to ~/.local/bin/
@@ -136,9 +106,7 @@ WALLPAPER_SCRIPT
 
 chmod +x "$DEST_DIR/wallpaper.sh"
 
-tput setaf 2
-echo "wallpaper.sh installed."
-tput sgr0
+ok "wallpaper.sh installed."
 
 ##################################################################################################################################
 # 3. Clone or update wallpaper repository
@@ -148,28 +116,7 @@ WALLPAPER_DIR="$HOME/.local/share/wallpapers"
 WALLPAPER_REPO="https://github.com/zythros/wallpaper.git"
 
 echo
-if [ -d "$WALLPAPER_DIR/.git" ]; then
-    tput setaf 3
-    echo "Updating wallpaper repository ..."
-    tput sgr0
-    git -C "$WALLPAPER_DIR" pull
-elif [ -d "$WALLPAPER_DIR" ] && [ "$(ls -A "$WALLPAPER_DIR" 2>/dev/null)" ]; then
-    tput setaf 3
-    echo "Backing up existing wallpapers and cloning repository ..."
-    tput sgr0
-    mv "$WALLPAPER_DIR" "${WALLPAPER_DIR}.backup.$(date +%s)"
-    git clone "$WALLPAPER_REPO" "$WALLPAPER_DIR"
-else
-    tput setaf 3
-    echo "Cloning wallpaper repository ..."
-    tput sgr0
-    mkdir -p "$(dirname "$WALLPAPER_DIR")"
-    git clone "$WALLPAPER_REPO" "$WALLPAPER_DIR"
-fi
-
-tput setaf 2
-echo "Wallpapers at $WALLPAPER_DIR"
-tput sgr0
+git_sync "$WALLPAPER_REPO" "$WALLPAPER_DIR" && ok "Wallpapers at $WALLPAPER_DIR"
 
 ##################################################################################################################################
 # 4. Configure autostart via ~/.xprofile
@@ -188,9 +135,7 @@ PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
 
 echo
 if grep -qF 'export PATH="$HOME/.local/bin' "$XPROFILE" 2>/dev/null; then
-    tput setaf 2
-    echo "~/.xprofile already exports ~/.local/bin PATH — skipping."
-    tput sgr0
+    ok "~/.xprofile already exports ~/.local/bin PATH — skipping."
 else
     echo "Adding PATH export to $XPROFILE ..."
     # Prepend so PATH is set before wallpaper.sh is called
@@ -202,21 +147,15 @@ else
     else
         echo "$PATH_LINE" > "$XPROFILE"
     fi
-    tput setaf 2
-    echo "~/.xprofile PATH updated."
-    tput sgr0
+    ok "~/.xprofile PATH updated."
 fi
 
 if grep -qF "wallpaper.sh restore" "$XPROFILE" 2>/dev/null; then
-    tput setaf 2
-    echo "~/.xprofile already contains wallpaper.sh restore — skipping."
-    tput sgr0
+    ok "~/.xprofile already contains wallpaper.sh restore — skipping."
 else
     echo "Adding wallpaper.sh restore to $XPROFILE ..."
     echo "$WALLPAPER_LINE" >> "$XPROFILE"
-    tput setaf 2
-    echo "~/.xprofile updated."
-    tput sgr0
+    ok "~/.xprofile updated."
 fi
 
 ##################################################################################################################################
@@ -225,24 +164,14 @@ fi
 
 WALLPAPER_COUNT=$(find "$WALLPAPER_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \) 2>/dev/null | wc -l)
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "Wallpaper system installed:"
 echo "  Script:     ~/.local/bin/wallpaper.sh"
 echo "  Wallpapers: $WALLPAPER_DIR ($WALLPAPER_COUNT images)"
 echo "  Autostart:  ~/.xprofile (wallpaper.sh restore, runs on LightDM login)"
 echo "  PATH:       ~/.xprofile exports ~/.local/bin (works for any login shell)"
 echo
-if [ "$WALLPAPER_COUNT" -eq 0 ]; then
-    tput setaf 3
-    echo "WARNING: No wallpapers found in $WALLPAPER_DIR"
-    tput sgr0
-    echo
-fi
+[ "$WALLPAPER_COUNT" -eq 0 ] && warn "No wallpapers found in $WALLPAPER_DIR"
 echo "Usage:"
 echo "  wallpaper.sh next     - Next wallpaper"
 echo "  wallpaper.sh prev     - Previous wallpaper"
@@ -252,4 +181,3 @@ echo "Keybinds (wired in by 802-dwm-setup.sh):"
 echo "  Mod+w           next wallpaper"
 echo "  Mod+Shift+w     previous wallpaper"
 echo
-tput sgr0

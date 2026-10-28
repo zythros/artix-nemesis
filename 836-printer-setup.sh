@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
@@ -13,82 +12,23 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
+script_start "Setting up Epson ET-3950 printer + scanner"
 
-##################################################################################################################################
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Setting up Epson ET-3950 printer + scanner"
-echo "########################################################################"
-tput sgr0
-echo
-
-##################################################################################################################################
-# Authenticate sudo once; keepalive prevents expiry during installs
-##################################################################################################################################
-
-sudo -v
-while true; do timeout 30 sudo -v; sleep 50; done &
-SUDO_KEEPALIVE=$!
-
-artix_pacman_nohook_setup
-trap "artix_pacman_cleanup; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+PRINTER_IP="10.0.100.103"
 
 ##################################################################################################################################
 # 1. CUPS
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── CUPS ──────────────────────────────────────────────────────"
-tput sgr0
-
-for pkg in cups cups-openrc; do
-    if pacman -Q "$pkg" &>/dev/null; then
-        echo "$pkg already installed — skipping."
-    else
-        echo "Installing $pkg ..."
-        pkg_install "$pkg" || true
-        if pacman -Q "$pkg" &>/dev/null; then
-            tput setaf 2; echo "$pkg installed."; tput sgr0
-        else
-            tput setaf 1; echo "ERROR: $pkg installation failed." >&2; tput sgr0
-        fi
-    fi
-done
+section "CUPS"
+ensure_pkgs cups cups-openrc
 
 ##################################################################################################################################
 # 2. Avahi — mDNS / network printer auto-discovery
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── Avahi (mDNS / network printer discovery) ──────────────────"
-tput sgr0
-
-for pkg in avahi avahi-openrc nss-mdns; do
-    if pacman -Q "$pkg" &>/dev/null; then
-        echo "$pkg already installed — skipping."
-    else
-        echo "Installing $pkg ..."
-        pkg_install "$pkg" || true
-        if pacman -Q "$pkg" &>/dev/null; then
-            tput setaf 2; echo "$pkg installed."; tput sgr0
-        else
-            tput setaf 1; echo "ERROR: $pkg installation failed." >&2; tput sgr0
-        fi
-    fi
-done
+section "Avahi (mDNS / network printer discovery)"
+ensure_pkgs avahi avahi-openrc nss-mdns
 
 # Patch /etc/nsswitch.conf so .local hostnames resolve via mDNS
 if grep -q 'mdns_minimal' /etc/nsswitch.conf; then
@@ -96,137 +36,83 @@ if grep -q 'mdns_minimal' /etc/nsswitch.conf; then
 else
     echo "Patching /etc/nsswitch.conf for mDNS ..."
     sudo sed -i '/^hosts:/ s/dns/mdns_minimal [NOTFOUND=return] dns/' /etc/nsswitch.conf
-    tput setaf 2; echo "nsswitch.conf patched."; tput sgr0
+    if grep -q 'mdns_minimal' /etc/nsswitch.conf; then
+        ok "nsswitch.conf patched."
+    else
+        err "could not patch /etc/nsswitch.conf for mDNS (no 'hosts: ... dns' line?)"
+    fi
 fi
 
 ##################################################################################################################################
 # 3. Print job manager GUI
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── system-config-printer ─────────────────────────────────────"
-tput sgr0
-
-if pacman -Q system-config-printer &>/dev/null; then
-    echo "system-config-printer already installed — skipping."
-else
-    echo "Installing system-config-printer ..."
-    pkg_install system-config-printer || true
-    if pacman -Q system-config-printer &>/dev/null; then
-        tput setaf 2; echo "system-config-printer installed."; tput sgr0
-    else
-        tput setaf 1; echo "ERROR: system-config-printer installation failed." >&2; tput sgr0
-    fi
-fi
+section "system-config-printer"
+ensure_pkgs system-config-printer
 
 ##################################################################################################################################
-# 4. SANE + Simple Scan (scanner support)
+# 4. SANE + scanner frontends
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── SANE + scanner frontends (skanlite, gscan2pdf) ───────────"
-tput sgr0
-
-for pkg in sane skanlite gscan2pdf; do
-    if pacman -Q "$pkg" &>/dev/null; then
-        echo "$pkg already installed — skipping."
-    else
-        echo "Installing $pkg ..."
-        pkg_install "$pkg" || true
-        if pacman -Q "$pkg" &>/dev/null; then
-            tput setaf 2; echo "$pkg installed."; tput sgr0
-        else
-            tput setaf 1; echo "ERROR: $pkg installation failed." >&2; tput sgr0
-        fi
-    fi
-done
+section "SANE + scanner frontends (skanlite, gscan2pdf)"
+ensure_pkgs sane skanlite gscan2pdf
 
 # Add printer IP to epsonds backend so SANE can find the network scanner
 EPSONDS_CONF="/etc/sane.d/epsonds.conf"
-PRINTER_IP="10.0.100.103"
 if grep -qF "net $PRINTER_IP" "$EPSONDS_CONF" 2>/dev/null; then
     echo "epsonds.conf already has $PRINTER_IP — skipping."
 else
     echo "Adding $PRINTER_IP to $EPSONDS_CONF ..."
-    echo "net $PRINTER_IP" | sudo tee -a "$EPSONDS_CONF" > /dev/null
-    tput setaf 2; echo "epsonds.conf updated."; tput sgr0
+    if echo "net $PRINTER_IP" | sudo tee -a "$EPSONDS_CONF" > /dev/null; then
+        ok "epsonds.conf updated."
+    else
+        err "could not add $PRINTER_IP to $EPSONDS_CONF — scanner won't be found"
+    fi
 fi
 
 # Hooks are skipped (nohook conf) — update desktop DB manually so dmenu sees simple-scan
 echo "Updating desktop database ..."
 sudo update-desktop-database /usr/share/applications &>/dev/null || true
-tput setaf 2; echo "Desktop database updated."; tput sgr0
+ok "Desktop database updated."
 
 ##################################################################################################################################
 # 5. Epson ESCPR2 driver  (ET-3950 requires ESCPR2, not the older ESCPR)
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── Epson ESCPR2 driver ────────────────────────────────────────"
-tput sgr0
+section "Epson ESCPR2 driver"
 
 DRIVER_PKG="epson-inkjet-printer-escpr2"
-if pacman -Q "$DRIVER_PKG" &>/dev/null; then
-    echo "$DRIVER_PKG already installed — skipping."
-else
-    echo "Installing $DRIVER_PKG from official repos ..."
-    pkg_install "$DRIVER_PKG" || true
-    if pacman -Q "$DRIVER_PKG" &>/dev/null; then
-        tput setaf 2; echo "$DRIVER_PKG installed."; tput sgr0
-    else
-        tput setaf 3
-        echo "NOTE: $DRIVER_PKG isn't in the official Artix/Arch repos (AUR-only)."
-        echo "      Skipping — not auto-installed from AUR by design. Options:"
-        echo "        - Build manually: paru -S $DRIVER_PKG  (or yay -S $DRIVER_PKG)"
-        echo "        - Or grab Epson's official .deb/.rpm from epson.com and convert with debtap/rpmextract"
-        echo "      Without it, step 8 below won't find a PPD and the printer add will fail."
-        tput sgr0
-    fi
+if ! ensure_pkgs --optional "$DRIVER_PKG"; then
+    _c setaf 3
+    echo "NOTE: $DRIVER_PKG isn't in the official Artix/Arch repos (AUR-only)."
+    echo "      Skipping — not auto-installed from AUR by design. Options:"
+    echo "        - Build manually: paru -S $DRIVER_PKG  (or yay -S $DRIVER_PKG)"
+    echo "        - Or grab Epson's official .deb/.rpm from epson.com and convert with debtap/rpmextract"
+    echo "      Without it, step 8 below won't find a PPD and the printer add will fail."
+    _c sgr0
 fi
 
 ##################################################################################################################################
 # 6. Enable and start services (OpenRC)
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── Enabling services ─────────────────────────────────────────"
-tput sgr0
-
-for svc in cupsd avahi-daemon; do
-    echo "Enabling $svc ..."
-    if sudo rc-update add "$svc" default 2>/dev/null; then
-        tput setaf 2; echo "  $svc enabled at default runlevel."; tput sgr0
-    else
-        echo "  $svc already enabled."
-    fi
-    echo "Starting $svc ..."
-    if sudo rc-service "$svc" start 2>/dev/null; then
-        tput setaf 2; echo "  $svc started."; tput sgr0
-    else
-        echo "  $svc already running (or start failed — check rc-service $svc status)."
-    fi
-done
+section "Enabling services"
+enable_service cupsd
+enable_service avahi-daemon
 
 ##################################################################################################################################
 # 7. Add current user to lp group (required for printer access)
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── User group ────────────────────────────────────────────────"
-tput sgr0
+section "User group"
 
 if id -nG "$USER" | grep -qw lp; then
     echo "$USER is already in the lp group."
+elif sudo usermod -aG lp "$USER"; then
+    ok "$USER added to lp group."
+    _c setaf 3; echo "NOTE: group change takes effect on next login."; _c sgr0
 else
-    echo "Adding $USER to lp group ..."
-    sudo usermod -aG lp "$USER"
-    tput setaf 2; echo "$USER added to lp group."; tput sgr0
-    tput setaf 3; echo "NOTE: group change takes effect on next login."; tput sgr0
+    err "could not add $USER to the lp group"
 fi
 
 ##################################################################################################################################
@@ -234,12 +120,9 @@ fi
 ##################################################################################################################################
 
 PRINTER_NAME="Epson-ET-3950"
-PRINTER_URI="socket://10.0.100.103:9100"
+PRINTER_URI="socket://$PRINTER_IP:9100"
 
-echo
-tput setaf 3
-echo "── Adding printer to CUPS ────────────────────────────────────"
-tput sgr0
+section "Adding printer to CUPS"
 
 if lpstat -p "$PRINTER_NAME" &>/dev/null; then
     echo "Printer '$PRINTER_NAME' already configured in CUPS — skipping."
@@ -247,28 +130,21 @@ else
     echo "Looking for ET-3950 PPD ..."
     PPD=$(lpinfo -m 2>/dev/null | grep -i 'ET.3950' | head -1 | awk '{print $1}')
     if [ -z "$PPD" ]; then
-        tput setaf 1
-        echo "ERROR: No PPD found for ET-3950. Is epson-inkjet-printer-escpr2 installed?" >&2
-        tput sgr0
+        err "No PPD found for ET-3950. Is $DRIVER_PKG installed?"
     else
-        tput setaf 2; echo "Found PPD: $PPD"; tput sgr0
+        ok "Found PPD: $PPD"
         echo "Adding '$PRINTER_NAME' at $PRINTER_URI ..."
-        sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m "$PPD" -D "Epson ET-3950"
-        sudo lpadmin -d "$PRINTER_NAME"
-        tput setaf 2
-        echo "Printer '$PRINTER_NAME' added and set as default."
-        tput sgr0
+        if sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m "$PPD" -D "Epson ET-3950" \
+            && sudo lpadmin -d "$PRINTER_NAME"; then
+            ok "Printer '$PRINTER_NAME' added and set as default."
+        else
+            err "lpadmin could not add '$PRINTER_NAME'"
+        fi
     fi
 fi
 
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "Printer management: http://localhost:631"
 echo
-tput sgr0

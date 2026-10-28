@@ -1,9 +1,8 @@
 #!/bin/bash
-#set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
-# Menu      : Build slstatus; write CPU/RAM/datetime to DWM bar
+# Menu      : Build slstatus; write datetime to DWM bar
 # Purpose   : Build slstatus from zythros fork; autostart via ~/.xprofile
 #
 # Artix/dwm differences vs arch-nemesis 830:
@@ -16,53 +15,30 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
-
-##################################################################################################################################
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Setting up slstatus (zythros fork)"
-echo "########################################################################"
-tput sgr0
-echo
-
-artix_pacman_nohook_setup
-sudo pacman --config "$NOHOOK_CONF" -Sy
+script_start "Setting up slstatus (zythros fork)"
+pkg_sync
 
 ##################################################################################################################################
 # 1. Build dependencies
 ##################################################################################################################################
 
-echo "Checking build dependencies ..."
-sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed base-devel libx11
-
-tput setaf 2
-echo "Build dependencies ready."
-tput sgr0
+section "Dependencies"
+ensure_pkgs base-devel libx11
 
 ##################################################################################################################################
 # 2. Remove pacman-installed slstatus (replaced by fork)
 ##################################################################################################################################
 
 if pacman -Qi slstatus &>/dev/null; then
-    tput setaf 3
+    _c setaf 3
     echo
     echo "Removing pacman slstatus (will be replaced by zythros fork) ..."
-    tput sgr0
-    sudo pacman -Rns --noconfirm slstatus
-    tput setaf 2
-    echo "Pacman slstatus removed."
-    tput sgr0
+    _c sgr0
+    if sudo pacman -Rns --noconfirm slstatus; then
+        ok "Pacman slstatus removed."
+    else
+        err "could not remove pacman slstatus — the fork's install may be shadowed"
+    fi
 fi
 
 ##################################################################################################################################
@@ -72,44 +48,8 @@ fi
 SLSTATUS_SRC="$HOME/.local/src/slstatus"
 
 echo
-if [ -d "$SLSTATUS_SRC/.git" ]; then
-    tput setaf 3
-    echo "Updating slstatus source ..."
-    tput sgr0
-    if ! git -C "$SLSTATUS_SRC" pull; then
-        tput setaf 1
-        echo "ERROR: git pull failed in $SLSTATUS_SRC — not building with stale/uncertain source." >&2
-        echo "       Usually local changes to tracked files blocking the merge. Check:" >&2
-        echo "         git -C $SLSTATUS_SRC status" >&2
-        echo "       If it's just local build artifacts (safe to discard), fix with:" >&2
-        echo "         git -C $SLSTATUS_SRC reset --hard origin/master && git -C $SLSTATUS_SRC pull" >&2
-        tput sgr0
-        exit 1
-    fi
-elif [ -d "$SLSTATUS_SRC" ]; then
-    tput setaf 3
-    echo "Backing up existing $SLSTATUS_SRC and cloning ..."
-    tput sgr0
-    mv "$SLSTATUS_SRC" "${SLSTATUS_SRC}.backup.$(date +%s)"
-    git clone https://github.com/zythros/slstatus.git "$SLSTATUS_SRC"
-else
-    tput setaf 3
-    echo "Cloning github.com/zythros/slstatus to $SLSTATUS_SRC ..."
-    tput sgr0
-    mkdir -p "$(dirname "$SLSTATUS_SRC")"
-    git clone https://github.com/zythros/slstatus.git "$SLSTATUS_SRC"
-fi
-
-if [ ! -d "$SLSTATUS_SRC/.git" ]; then
-    tput setaf 1
-    echo "ERROR: git clone failed — check internet connection"
-    tput sgr0
-    exit 1
-fi
-
-tput setaf 2
-echo "Source ready."
-tput sgr0
+git_sync https://github.com/zythros/slstatus.git "$SLSTATUS_SRC" \
+    || die "no up-to-date slstatus source — not building with stale/uncertain source"
 
 ##################################################################################################################################
 # 4. Strip volume component from config.h
@@ -119,33 +59,17 @@ tput sgr0
 
 echo
 echo "Patching config.h (removing volume, cpu, ram components) ..."
-sed -i '/pamixer/d; /cpu_perc/d; /ram_perc/d' "$SLSTATUS_SRC/config.h"
-tput setaf 2
-echo "config.h patched."
-tput sgr0
+sed -i '/pamixer/d; /cpu_perc/d; /ram_perc/d' "$SLSTATUS_SRC/config.h" || die "config.h patch failed"
+ok "config.h patched."
 
 ##################################################################################################################################
 # 5. Build and install
 ##################################################################################################################################
 
 echo
-echo "Building slstatus ..."
-make -C "$SLSTATUS_SRC" clean
-make -C "$SLSTATUS_SRC"
+make_install "$SLSTATUS_SRC" || die "slstatus build/install failed"
 
-echo "Installing slstatus ..."
-sudo make -C "$SLSTATUS_SRC" install
-
-if ! command -v slstatus &>/dev/null; then
-    tput setaf 1
-    echo "ERROR: slstatus not found after install"
-    tput sgr0
-    exit 1
-fi
-
-tput setaf 2
-echo "slstatus installed."
-tput sgr0
+command -v slstatus &>/dev/null || die "slstatus not found after install"
 
 ##################################################################################################################################
 # 6. Autostart via ~/.xprofile
@@ -155,21 +79,17 @@ XPROFILE="$HOME/.xprofile"
 
 echo
 if grep -qF 'slstatus &' "$XPROFILE" 2>/dev/null; then
-    tput setaf 2
-    echo "~/.xprofile already starts slstatus — skipping."
-    tput sgr0
+    ok "~/.xprofile already starts slstatus — skipping."
 else
-    tput setaf 3
+    _c setaf 3
     echo "Adding slstatus autostart to ~/.xprofile ..."
-    tput sgr0
+    _c sgr0
     cat >> "$XPROFILE" <<'XPROFILE_ENTRY'
 
 # slstatus — writes CPU/RAM/datetime to DWM status bar
 slstatus &
 XPROFILE_ENTRY
-    tput setaf 2
-    echo "~/.xprofile updated."
-    tput sgr0
+    ok "~/.xprofile updated."
 fi
 
 ##################################################################################################################################
@@ -177,27 +97,20 @@ fi
 ##################################################################################################################################
 
 if [ -n "${DISPLAY:-}" ] && pgrep -x slstatus &>/dev/null; then
-    tput setaf 3
+    _c setaf 3
     echo
     echo "Restarting running slstatus ..."
-    tput sgr0
+    _c sgr0
     pkill -x slstatus || true
     slstatus &
-    tput setaf 2
-    echo "slstatus restarted."
-    tput sgr0
+    ok "slstatus restarted."
 fi
 
 ##################################################################################################################################
 # Summary
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "slstatus (zythros fork) installed:"
 echo "  Source:  $SLSTATUS_SRC"
 echo "  Binary:  $(which slstatus)"
@@ -209,4 +122,3 @@ echo
 echo "Autostart: ~/.xprofile → slstatus & (takes effect at next login)"
 echo "Requires status2d patch in dwm fork for colored segments."
 echo
-tput sgr0

@@ -2,7 +2,7 @@
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
-# Menu      : Install OpenRGB; set all RGB hardware to #fbba2b at boot
+# Menu      : Install OpenRGB; set all RGB hardware to #ff8000 at boot
 # Purpose   : Install OpenRGB and set all RGB hardware (fans, RAM, GPU, keyboard) to a static color at boot.
 #             Uses /etc/local.d/rgb.start (OpenRC local service) to apply the color on every boot.
 #             i2c-dev is loaded in the boot script so OpenRGB can reach RAM RGB controllers over SMBus.
@@ -14,47 +14,14 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 
 RGB_COLOR="ff8000"
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### RGB setup"
-echo "########################################################################"
-tput sgr0
-echo
-
-##################################################################################################################################
-# Authenticate sudo once; keepalive prevents expiry during install
-##################################################################################################################################
-
-sudo -v
-while true; do timeout 30 sudo -v; sleep 50; done &
-SUDO_KEEPALIVE=$!
-
-artix_pacman_nohook_setup
-trap "artix_pacman_cleanup; kill $SUDO_KEEPALIVE 2>/dev/null" EXIT
+script_start "RGB setup"
 
 ##################################################################################################################################
 # Step 1: Install OpenRGB
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── Installing OpenRGB ───────────────────────────────────────────────────"
-tput sgr0
-
-pkg_install openrgb && { tput setaf 2; echo "  openrgb installed."; tput sgr0; } || {
-    tput setaf 1; echo "ERROR: failed to install openrgb" >&2; tput sgr0; exit 1
-}
+section "Installing OpenRGB"
+ensure_pkgs openrgb || die "openrgb is required"
 
 # Reload udev rules so the openrgb USB rules (60-openrgb.rules) take effect immediately
 # udevadm trigger can hang on eudev/Artix waiting for uevent processing — cap it
@@ -65,12 +32,9 @@ sudo timeout 10 udevadm trigger 2>/dev/null || true
 # Step 2: Write /etc/local.d/rgb.start
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── Writing /etc/local.d/rgb.start ───────────────────────────────────────"
-tput sgr0
+section "Writing /etc/local.d/rgb.start"
 
-sudo tee /etc/local.d/rgb.start > /dev/null <<EOF
+sudo tee /etc/local.d/rgb.start > /dev/null <<EOF || die "could not write /etc/local.d/rgb.start"
 #!/bin/sh
 # i2c-dev is required for OpenRGB to reach RAM RGB controllers over SMBus
 modprobe i2c-dev
@@ -87,40 +51,27 @@ openrgb --mode static --color ${RGB_COLOR}
 EOF
 
 sudo chmod +x /etc/local.d/rgb.start
-tput setaf 2; echo "  /etc/local.d/rgb.start written (color: #${RGB_COLOR})."; tput sgr0
+ok "  /etc/local.d/rgb.start written (color: #${RGB_COLOR})."
 
 ##################################################################################################################################
 # Step 3: Apply color now
 ##################################################################################################################################
 
-echo
-tput setaf 3
-echo "── Applying color now ────────────────────────────────────────────────────"
-tput sgr0
+section "Applying color now"
 
 sudo modprobe i2c-dev 2>/dev/null || true
 
 if sudo openrgb --mode static --color "$RGB_COLOR"; then
-    tput setaf 2; echo "  RGB set to #${RGB_COLOR}."; tput sgr0
+    ok "  RGB set to #${RGB_COLOR}."
 else
-    tput setaf 3
-    echo "  WARNING: openrgb exited non-zero — some devices may not be detected yet."
-    echo "  Check detected hardware:  openrgb --list-devices"
-    echo "  The boot script will retry on next boot."
-    tput sgr0
+    # Not an error: the boot script retries once USB devices have enumerated
+    warn "openrgb exited non-zero — some devices may not be detected yet (check: openrgb --list-devices; the boot script retries on next boot)"
 fi
 
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
-tput setaf 2
+script_done
 echo "RGB hardware will be set to #${RGB_COLOR} on every boot via /etc/local.d/rgb.start."
 echo "To change the color, edit RGB_COLOR in this script and rerun, or edit /etc/local.d/rgb.start directly."
 echo "To check detected devices:  openrgb --list-devices"
-tput sgr0
 echo

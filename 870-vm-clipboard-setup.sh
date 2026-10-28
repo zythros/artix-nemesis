@@ -12,43 +12,18 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
-
-artix_pacman_nohook_setup
+script_start "Setting up VM clipboard sharing"
 
 ##################################################################################################################################
 # Check if running inside a VM
 ##################################################################################################################################
 
 # virt-what replaces systemd-detect-virt (not available on Artix/OpenRC)
-if ! command -v virt-what &>/dev/null; then
-    sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed virt-what
-fi
+command -v virt-what &>/dev/null || ensure_pkgs virt-what || die "virt-what is needed to detect a VM"
 
 VIRT_TYPE=$(sudo virt-what 2>/dev/null | head -1)
 
-if [ -z "$VIRT_TYPE" ]; then
-    tput setaf 3
-    echo "Not running inside a VM - skipping clipboard setup"
-    tput sgr0
-    exit 0
-fi
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Setting up VM clipboard sharing"
-echo "########################################################################"
-tput sgr0
-echo
+[ -n "$VIRT_TYPE" ] || script_skip "Not running inside a VM — no clipboard sharing to set up."
 echo "Detected virtualization: $VIRT_TYPE"
 
 ##################################################################################################################################
@@ -58,9 +33,8 @@ echo "Detected virtualization: $VIRT_TYPE"
 echo
 echo "Installing VM guest packages..."
 
-sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed spice-vdagent
-sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed qemu-guest-agent
-sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed xclip
+# -openrc packages: the OpenRC service files are packaged separately on Artix
+ensure_pkgs spice-vdagent spice-vdagent-openrc qemu-guest-agent qemu-guest-agent-openrc xclip
 
 ##################################################################################################################################
 # 2. Enable services (OpenRC)
@@ -69,13 +43,11 @@ sudo pacman --config "$NOHOOK_CONF" -S --noconfirm --needed xclip
 echo
 echo "Enabling services..."
 
-# spice-vdagentd — system daemon for SPICE agent connection
-sudo rc-update add spice-vdagentd default 2>/dev/null
-sudo rc-service spice-vdagentd start 2>/dev/null
+# spice-vdagent — system daemon for the SPICE agent connection (spice-vdagentd)
+enable_service spice-vdagent
 
 # qemu-guest-agent — host-guest communication channel
-sudo rc-update add qemu-guest-agent default 2>/dev/null
-sudo rc-service qemu-guest-agent start 2>/dev/null
+enable_service qemu-guest-agent
 
 ##################################################################################################################################
 # 3. Ensure spice-vdagent starts in X session
@@ -87,7 +59,8 @@ echo "Configuring spice-vdagent autostart..."
 # --- XDG autostart (fallback for DEs that read it) ---
 if [ ! -f /etc/xdg/autostart/spice-vdagent.desktop ]; then
     echo "  Creating XDG autostart entry..."
-    sudo tee /etc/xdg/autostart/spice-vdagent.desktop > /dev/null << 'DESKTOP'
+    sudo mkdir -p /etc/xdg/autostart
+    sudo tee /etc/xdg/autostart/spice-vdagent.desktop > /dev/null << 'DESKTOP' || err "could not write the XDG autostart entry"
 [Desktop Entry]
 Name=Spice vdagent
 Comment=Agent for Spice guests
@@ -129,22 +102,16 @@ fi
 # 4. Summary
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "VM clipboard sharing:"
 echo "  - spice-vdagent (clipboard sync, auto-resize)"
 echo "  - qemu-guest-agent (host-guest communication)"
 echo "  - xclip (clipboard utilities)"
 echo
 echo "Services enabled (OpenRC):"
-echo "  - spice-vdagentd (system daemon)"
+echo "  - spice-vdagent (system daemon, needs a SPICE channel on the VM)"
 echo "  - qemu-guest-agent (host communication)"
 echo
 echo "Copy/paste between host and VM should work after next login."
 echo "If not working now, log out and back in (or reboot)."
 echo
-tput sgr0

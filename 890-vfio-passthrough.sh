@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -e
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
 ##################################################################################################################################
 # Author    : zythros
@@ -12,37 +11,14 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
-
-##################################################################################################################################
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Setting up VFIO passthrough (RTX 3090)"
-echo "########################################################################"
-tput sgr0
-echo
+script_start "Setting up VFIO passthrough (RTX 3090)"
 
 ##################################################################################################################################
 # Detect the passthrough GPU (GA102) PCI address and IDs
 ##################################################################################################################################
 
 GPU_ADDR=$(lspci | grep "GA102" | grep -i "VGA" | awk '{print $1}')
-if [ -z "$GPU_ADDR" ]; then
-    tput setaf 1
-    echo "ERROR: Could not detect RTX 3090 (GA102) PCI address. Aborting."
-    tput sgr0
-    exit 1
-fi
+[ -n "$GPU_ADDR" ] || die "Could not detect RTX 3090 (GA102) PCI address. Aborting."
 echo "Detected RTX 3090 (GA102) at: $GPU_ADDR"
 
 # Companion audio device is at the same bus:device, function 1
@@ -51,21 +27,14 @@ AUDIO_ADDR="${GPU_ADDR%.*}.1"
 GPU_ID=$(lspci -nn | grep "^$GPU_ADDR " | grep -oP '\[10de:[0-9a-f]+\]' | tail -1 | tr -d '[]')
 AUDIO_ID=$(lspci -nn | grep "^$AUDIO_ADDR " | grep -oP '\[10de:[0-9a-f]+\]' | tail -1 | tr -d '[]')
 
-if [ -z "$GPU_ID" ]; then
-    tput setaf 1
-    echo "ERROR: Could not extract PCI ID for $GPU_ADDR. Aborting."
-    tput sgr0
-    exit 1
-fi
+[ -n "$GPU_ID" ] || die "Could not extract PCI ID for $GPU_ADDR. Aborting."
 
 echo "RTX 3090 GPU  PCI ID: $GPU_ID"
 if [ -n "$AUDIO_ID" ]; then
     echo "RTX 3090 Audio PCI ID: $AUDIO_ID"
     VFIO_IDS="$GPU_ID,$AUDIO_ID"
 else
-    tput setaf 3
-    echo "WARNING: No audio device found at $AUDIO_ADDR — only binding GPU."
-    tput sgr0
+    warn "No audio device found at $AUDIO_ADDR — only binding GPU."
     VFIO_IDS="$GPU_ID"
 fi
 
@@ -76,13 +45,11 @@ fi
 VFIO_MODPROBE="/etc/modprobe.d/vfio.conf"
 echo
 echo "Writing $VFIO_MODPROBE ..."
-sudo tee "$VFIO_MODPROBE" > /dev/null << EOF
+sudo tee "$VFIO_MODPROBE" > /dev/null << EOF || die "could not write $VFIO_MODPROBE"
 # VFIO passthrough — bind secondary GPU to vfio-pci instead of nvidia
 options vfio-pci ids=$VFIO_IDS
 EOF
-tput setaf 2
-echo "Written: $VFIO_MODPROBE"
-tput sgr0
+ok "Written: $VFIO_MODPROBE"
 
 ##################################################################################################################################
 # Update /etc/mkinitcpio.conf — load vfio modules early (before nvidia claims the device)
@@ -95,18 +62,16 @@ echo "Updating MODULES in $MKINITCPIO_CONF ..."
 VFIO_MODULES="vfio_pci vfio"
 
 if grep -qP "^MODULES=\(.*vfio_pci" "$MKINITCPIO_CONF"; then
-    tput setaf 3
+    _c setaf 3
     echo "vfio_pci already present in MODULES — skipping mkinitcpio.conf edit."
-    tput sgr0
+    _c sgr0
 else
     # Prepend vfio modules to the existing MODULES=() array
     # Handles both empty MODULES=() and MODULES=(existing stuff)
     sudo sed -i "s/^MODULES=(\(.*\))/MODULES=($VFIO_MODULES \1)/" "$MKINITCPIO_CONF"
     # Clean up any trailing spaces from empty original array
     sudo sed -i "s/^MODULES=($VFIO_MODULES )/MODULES=($VFIO_MODULES)/" "$MKINITCPIO_CONF"
-    tput setaf 2
-    echo "Updated MODULES in $MKINITCPIO_CONF"
-    tput sgr0
+    ok "Updated MODULES in $MKINITCPIO_CONF"
 fi
 
 ##################################################################################################################################
@@ -124,9 +89,9 @@ PT_PARAM="iommu=pt"
 
 echo
 if sudo test -f "/boot/loader/loader.conf"; then
-    tput setaf 3
+    _c setaf 3
     echo "Detected systemd-boot — adding $IOMMU_PARAM $PT_PARAM to boot entries..."
-    tput sgr0
+    _c sgr0
 
     for entry in /boot/loader/entries/*.conf; do
         if grep -q "^options" "$entry"; then
@@ -140,9 +105,7 @@ if sudo test -f "/boot/loader/loader.conf"; then
                 CHANGED=1
             fi
             if [ $CHANGED -eq 1 ]; then
-                tput setaf 2
-                echo "Updated: $entry"
-                tput sgr0
+                ok "Updated: $entry"
             else
                 echo "Already present in: $entry"
             fi
@@ -150,9 +113,9 @@ if sudo test -f "/boot/loader/loader.conf"; then
     done
 
 elif [ -f "/etc/default/grub" ]; then
-    tput setaf 3
+    _c setaf 3
     echo "Detected GRUB — adding $IOMMU_PARAM $PT_PARAM to /etc/default/grub..."
-    tput sgr0
+    _c sgr0
 
     GRUB_CHANGED=0
     if ! grep -q "$IOMMU_PARAM" /etc/default/grub; then
@@ -172,15 +135,11 @@ elif [ -f "/etc/default/grub" ]; then
 
     if [ $GRUB_CHANGED -eq 1 ]; then
         sudo grub-mkconfig -o /boot/grub/grub.cfg
-        tput setaf 2
-        echo "GRUB updated and config regenerated."
-        tput sgr0
+        ok "GRUB updated and config regenerated."
     fi
 
 else
-    tput setaf 1
-    echo "Could not detect bootloader. Add '$IOMMU_PARAM $PT_PARAM' to your kernel parameters manually."
-    tput sgr0
+    err "Could not detect bootloader. Add '$IOMMU_PARAM $PT_PARAM' to your kernel parameters manually."
 fi
 
 ##################################################################################################################################
@@ -188,22 +147,15 @@ fi
 ##################################################################################################################################
 
 echo
-tput setaf 3
+_c setaf 3
 echo "Rebuilding initramfs (mkinitcpio -P) ..."
-tput sgr0
-sudo mkinitcpio -P
-tput setaf 2
-echo "Initramfs rebuilt."
-tput sgr0
+_c sgr0
+sudo mkinitcpio -P || die "mkinitcpio -P failed — VFIO modules not in the initramfs"
+ok "Initramfs rebuilt."
 
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "Configured:"
 echo "  - $VFIO_MODPROBE (vfio-pci IDs: $VFIO_IDS)"
 echo "  - $MKINITCPIO_CONF (vfio modules loaded early: $VFIO_MODULES)"
@@ -216,4 +168,3 @@ echo "After reboot, verify:"
 echo "  lspci -k | grep -A2 '$GPU_ADDR'   # should show 'Kernel driver in use: vfio-pci'"
 echo "  dmesg | grep -i iommu             # should show IOMMU enabled"
 echo
-tput sgr0

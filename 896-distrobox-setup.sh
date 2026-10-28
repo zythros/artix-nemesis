@@ -12,55 +12,13 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #
 ##################################################################################################################################
 
-if [ "$DEBUG" = true ]; then
-    echo
-    echo "------------------------------------------------------------"
-    echo "Running $(basename $0)"
-    echo "------------------------------------------------------------"
-    echo
-    read -n 1 -s -r -p "Debug mode is on. Press any key to continue..."
-    echo
-fi
-
-echo
-tput setaf 2
-echo "########################################################################"
-echo "################### Setting up podman + distrobox"
-echo "########################################################################"
-tput sgr0
-echo
-
-artix_pacman_nohook_setup
+script_start "Setting up podman + distrobox"
 
 ##################################################################################################################################
 # 1. Install packages
 ##################################################################################################################################
 
-echo "Installing packages..."
-
-FAILED=()
-for pkg in podman distrobox; do
-    if pacman -Q "$pkg" &>/dev/null; then
-        echo "  $pkg already installed — skipping."
-    else
-        pkg_install "$pkg" || true  # timeout/hook failures don't abort — check pacman -Q as truth
-        if pacman -Q "$pkg" &>/dev/null; then
-            echo "  $pkg installed."
-        else
-            tput setaf 1
-            echo "  ERROR: $pkg installation failed." >&2
-            tput sgr0
-            FAILED+=("$pkg")
-        fi
-    fi
-done
-
-if [ ${#FAILED[@]} -gt 0 ]; then
-    tput setaf 1
-    echo "Could not install: ${FAILED[*]} — aborting." >&2
-    tput sgr0
-    exit 1
-fi
+ensure_pkgs podman distrobox || die "podman/distrobox missing — nothing to configure"
 
 ##################################################################################################################################
 # 2. subuid/subgid ranges for rootless podman
@@ -84,9 +42,12 @@ for kind in uid gid; do
     fi
     start=$(awk -F: 'BEGIN { max = 100000 } { end = $2 + $3; if (end > max) max = end } END { print max }' "$file" 2>/dev/null)
     end=$((start + 65535))
-    sudo usermod "--add-sub${kind}s" "$start-$end" "$USER"
-    echo "  Added $USER:$start:65536 to $file"
-    SUBIDS_CHANGED=true
+    if sudo usermod "--add-sub${kind}s" "$start-$end" "$USER"; then
+        echo "  Added $USER:$start:65536 to $file"
+        SUBIDS_CHANGED=true
+    else
+        err "could not add a sub${kind} range for $USER — rootless containers will fail"
+    fi
 done
 
 # Existing podman storage was built without the new mapping — refresh it
@@ -111,7 +72,7 @@ SHARED_ROOT_SVC="/etc/init.d/shared-root"
 if [ -f "$SHARED_ROOT_SVC" ]; then
     echo "  $SHARED_ROOT_SVC already exists — skipping."
 else
-    sudo tee "$SHARED_ROOT_SVC" > /dev/null <<'RCEOF'
+    sudo tee "$SHARED_ROOT_SVC" > /dev/null <<'RCEOF' || die "could not write $SHARED_ROOT_SVC"
 #!/sbin/openrc-run
 
 description="Mark / as a shared mount (required for podman/distrobox rootless mounts)"
@@ -130,25 +91,13 @@ RCEOF
     echo "  Wrote $SHARED_ROOT_SVC"
 fi
 
-sudo rc-update add shared-root default 2>/dev/null || true
-echo "  shared-root enabled at default runlevel."
-
-if sudo rc-service shared-root start 2>/dev/null; then
-    echo "  / is now a shared mount."
-else
-    echo "  shared-root already applied (or start failed — check: sudo rc-service shared-root status)."
-fi
+enable_service shared-root
 
 ##################################################################################################################################
 # 4. Summary
 ##################################################################################################################################
 
-echo
-tput setaf 6
-echo "##############################################################"
-echo "###################  $(basename $0) done"
-echo "##############################################################"
-echo
+script_done
 echo "Installed:"
 echo "  - podman (rootless container engine)"
 echo "  - distrobox (run other distros' containers as if native)"
@@ -162,4 +111,3 @@ echo "Known upstream bug (distrobox#1983): distrobox stop/rm can hang on"
 echo "non-systemd distros. If a container gets stuck in 'Stopping':"
 echo "  podman rm -f <name>"
 echo
-tput sgr0
