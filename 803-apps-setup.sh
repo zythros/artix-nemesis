@@ -156,7 +156,7 @@ style = "Italic"
 padding.x = 8
 padding.y = 8
 decorations = "full"
-opacity = 0.9  # needs a compositor (850-picom-setup.sh); solid without one
+opacity = 0.75  # needs a compositor (850-picom-setup.sh); solid without one
 
 [scrolling]
 history = 10000
