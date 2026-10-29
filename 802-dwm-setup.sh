@@ -12,7 +12,8 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 #             (~/.xprofile), writes ~/.dwm/keybindings.txt, makes
 #             JetBrains Mono Nerd Font the default "monospace" font, and
 #             sets a system-wide dark preference that GTK, Qt, browsers and
-#             Electron apps follow.
+#             Electron apps follow, and makes alacritty the preferred
+#             terminal for XFCE/GTK apps (Thunar's "Open Terminal Here").
 #             Needs Xorg + LightDM already installed (800-base-desktop.sh).
 ##################################################################################################################################
 #
@@ -328,6 +329,23 @@ else
 fi
 
 ##################################################################################################################################
+# 12. alacritty as the preferred terminal for XFCE/GTK apps
+#     Thunar's "Open Terminal Here" (and anything using exo-open) reads
+#     ~/.config/xfce4/helpers.rc and falls back to xfce4-terminal without
+#     it. exo ships an alacritty helper, so naming it is enough.
+##################################################################################################################################
+
+echo
+HELPERS_RC="$HOME/.config/xfce4/helpers.rc"
+if grep -q '^TerminalEmulator=' "$HELPERS_RC" 2>/dev/null; then
+    echo "$HELPERS_RC already names a terminal ($(grep '^TerminalEmulator=' "$HELPERS_RC" | cut -d= -f2)) — skipping."
+else
+    mkdir -p "$(dirname "$HELPERS_RC")"
+    echo 'TerminalEmulator=alacritty' >> "$HELPERS_RC"
+    ok "alacritty set as preferred terminal in $HELPERS_RC (Thunar, exo-open)."
+fi
+
+##################################################################################################################################
 
 script_done
 echo "dwm is now available as a session in LightDM."
@@ -336,5 +354,6 @@ echo "Source:      $DWM_SRC, $DMENU_SRC"
 echo "Mod+d:       $WRAPPER (j4-dmenu-desktop + zythros dmenu, dwm bar colours)"
 echo "Font:        $FONT_CONF (monospace -> JetBrainsMono Nerd Font Mono)"
 echo "Dark mode:   gsettings color-scheme + GTK2/3/4 + Qt (takes effect at next login / app start)"
+echo "Terminal:    $HELPERS_RC (XFCE/GTK apps open alacritty)"
 echo "To rebuild:  make -C $DWM_SRC clean && make -C $DWM_SRC && sudo make -C $DWM_SRC install"
 echo
