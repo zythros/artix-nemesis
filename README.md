@@ -38,6 +38,7 @@ session in LightDM.
 | `836-printer-setup.sh` | hardware | CUPS, Avahi, SANE, plus a network Epson ET-3950 |
 | `837-rgb-setup.sh` | hardware | OpenRGB, with a static colour applied at every boot |
 | `840-snapper-setup.sh` | optional | Snapper + grub-btrfs (only runs on btrfs root with GRUB) |
+| `850-picom-setup.sh` | optional | picom compositor (glx + vsync); skips without a real GPU unless `--force` |
 | `870-vm-clipboard-setup.sh` | optional | SPICE clipboard sharing (only runs inside a VM) |
 | `880-nvidia-bm-setup.sh` | hardware | NVIDIA drivers + Xorg config for a dual-GPU host |
 | `881-nvidia-vm-setup.sh` | hardware | NVIDIA drivers inside a VM with a passed-through GPU |
