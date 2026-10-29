@@ -117,7 +117,8 @@ WALLPAPER_DIR="$HOME/.local/share/wallpapers"
 WALLPAPER_REPO="https://github.com/zythros/wallpaper.git"
 
 echo
-git_sync "$WALLPAPER_REPO" "$WALLPAPER_DIR" && ok "Wallpapers at $WALLPAPER_DIR"
+# Shallow: the repo history holds ~500 MB of deleted/replaced images
+git_sync --shallow "$WALLPAPER_REPO" "$WALLPAPER_DIR" && ok "Wallpapers at $WALLPAPER_DIR"
 
 ##################################################################################################################################
 # 4. Configure autostart via ~/.xprofile

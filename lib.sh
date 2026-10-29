@@ -305,11 +305,24 @@ enable_service() {
 # Source checkouts
 ##################################################################################################################################
 
-# git_sync <url> <dir> — clone, or pull if already a checkout.  A non-git
-# <dir> that already has content is moved aside to <dir>.backup.<epoch>.
+# git_sync [--shallow] <url> <dir> — clone, or pull if already a checkout.
+# --shallow clones with --depth 1 (latest files only, no history) and updates
+# by fetching the newest commit and moving to it; a plain pull on a shallow
+# clone can fail with "unrelated histories". Untracked files (e.g. images
+# you added) are kept; local edits to tracked files make it refuse.
+# A full clone keeps updating with a normal pull, --shallow or not.
+# A non-git <dir> that already has content is moved aside to <dir>.backup.<epoch>.
 git_sync() {
+    local depth=()
+    [ "$1" = "--shallow" ] && { depth=(--depth 1); shift; }
     local url="$1" dir="$2"
-    if [ -d "$dir/.git" ]; then
+    if [ -d "$dir/.git" ] && [ "$(git -C "$dir" rev-parse --is-shallow-repository)" = true ]; then
+        echo "Updating $dir (shallow) ..."
+        [ -z "$(git -C "$dir" status --porcelain --untracked-files=no)" ] \
+            || { err "local changes in $dir — not updating (check: git -C $dir status)"; return 1; }
+        git -C "$dir" fetch --depth 1 origin HEAD && git -C "$dir" reset -q --hard FETCH_HEAD \
+            || { err "git fetch failed in $dir — check: git -C $dir status"; return 1; }
+    elif [ -d "$dir/.git" ]; then
         echo "Updating $dir ..."
         git -C "$dir" pull || { err "git pull failed in $dir — check: git -C $dir status"; return 1; }
     else
@@ -319,7 +332,7 @@ git_sync() {
         fi
         echo "Cloning $url to $dir ..."
         mkdir -p "$(dirname "$dir")"
-        git clone "$url" "$dir" || { err "git clone $url failed — check internet connection"; return 1; }
+        git clone "${depth[@]}" "$url" "$dir" || { err "git clone $url failed — check internet connection"; return 1; }
     fi
 }
 
