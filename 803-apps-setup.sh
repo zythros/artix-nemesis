@@ -131,6 +131,8 @@ done
 ##################################################################################################################################
 
 ALACRITTY_CONF="$HOME/.config/alacritty/alacritty.toml"
+# Background opacity; needs a compositor (850-picom-setup.sh), solid without one
+ALACRITTY_OPACITY="0.85"
 if grep -qF '#0a0a0a' "$ALACRITTY_CONF" 2>/dev/null; then
     echo "alacritty config already in place — skipping."
 else
@@ -156,7 +158,6 @@ style = "Italic"
 padding.x = 8
 padding.y = 8
 decorations = "full"
-opacity = 0.85  # needs a compositor (850-picom-setup.sh); solid without one
 
 [scrolling]
 history = 10000
@@ -190,6 +191,19 @@ cyan    = "#7ee8dd"
 white   = "#ffffff"
 ALACRITTYCONF
     ok "  → wrote $ALACRITTY_CONF"
+fi
+
+# Opacity is added separately so configs written before it existed (803
+# skips an existing config) get it too. An opacity the user already set,
+# whatever its value, is left alone.
+if grep -qE '^[[:space:]]*(window\.)?opacity[[:space:]]*=' "$ALACRITTY_CONF"; then
+    echo "alacritty opacity already set ($(grep -m1 -oE 'opacity[[:space:]]*=[[:space:]]*[0-9.]+' "$ALACRITTY_CONF")) — skipping."
+elif grep -q '^\[window\]' "$ALACRITTY_CONF"; then
+    sed -i "/^\[window\]/a opacity = $ALACRITTY_OPACITY  # needs a compositor (850-picom-setup.sh); solid without one" "$ALACRITTY_CONF"
+    ok "  → added opacity = $ALACRITTY_OPACITY to [window] in $ALACRITTY_CONF"
+else
+    printf '\n[window]\nopacity = %s  # needs a compositor (850-picom-setup.sh); solid without one\n' "$ALACRITTY_OPACITY" >> "$ALACRITTY_CONF"
+    ok "  → added [window] opacity = $ALACRITTY_OPACITY to $ALACRITTY_CONF"
 fi
 
 ##################################################################################################################################

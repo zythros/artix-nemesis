@@ -90,7 +90,9 @@ unredir-if-possible = true;
 shadow = false;
 fading = false;
 
-# Transparency is per app, e.g. alacritty: [window] opacity = 0.9
+# Transparency is NOT set here: each app sets its own. For alacritty it is
+# "opacity" under [window] in ~/.config/alacritty/alacritty.toml
+# (803-apps-setup.sh adds it). This file only makes it visible.
 EOF
     ok "Wrote $PICOM_CONF (backend $BACKEND)."
 fi
